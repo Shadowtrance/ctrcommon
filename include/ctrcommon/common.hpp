@@ -19,44 +19,12 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
-typedef struct {
-    u8 r;
-    u8 g;
-    u8 b;
-} Color;
-
-typedef enum {
-    TOP_SCREEN,
-    BOTTOM_SCREEN
-} Screen;
-
-typedef enum {
-    SELECTED,
-    BACK,
-    APP_CLOSING,
-    MANUAL_BREAK
-} SelectionResult;
-
-typedef enum {
-    BUTTON_A,
-    BUTTON_B,
-    BUTTON_X,
-    BUTTON_Y,
-    BUTTON_L,
-    BUTTON_R,
-    BUTTON_START,
-    BUTTON_SELECT,
-    BUTTON_UP,
-    BUTTON_DOWN,
-    BUTTON_LEFT,
-    BUTTON_RIGHT,
-    BUTTON_TOUCH
-} Button;
-
-typedef struct {
-    int x;
-    int y;
-} Touch;
+bool platform_init();
+void platform_cleanup();
+bool platform_is_running();
+u64 platform_get_time();
+void platform_delay(int ms);
+void platform_printf(const char* format, ...);
 
 typedef enum {
     NAND,
@@ -89,6 +57,53 @@ typedef struct {
     AppCategory category;
 } App;
 
+const std::string app_get_platform_name(AppPlatform platform);
+const std::string app_get_category_name(AppCategory category);
+std::vector<App> app_list(MediaType mediaType);
+bool app_install(MediaType mediaType, const std::string path, std::function<bool(int)> onProgress);
+bool app_delete(App app);
+bool app_launch(App app);
+
+u64 fs_get_free_space(MediaType mediaType);
+
+typedef enum {
+    BUTTON_A,
+    BUTTON_B,
+    BUTTON_X,
+    BUTTON_Y,
+    BUTTON_L,
+    BUTTON_R,
+    BUTTON_START,
+    BUTTON_SELECT,
+    BUTTON_UP,
+    BUTTON_DOWN,
+    BUTTON_LEFT,
+    BUTTON_RIGHT,
+    BUTTON_TOUCH
+} Button;
+
+typedef struct {
+    int x;
+    int y;
+} Touch;
+
+void input_poll();
+bool input_is_released(Button button);
+bool input_is_pressed(Button button);
+bool input_is_held(Button button);
+Touch input_get_touch();
+
+typedef struct {
+    u8 r;
+    u8 g;
+    u8 b;
+} Color;
+
+typedef enum {
+    TOP_SCREEN,
+    BOTTOM_SCREEN
+} Screen;
+
 bool screen_begin_draw(Screen screen);
 bool screen_end_draw();
 void screen_swap_buffers_quick();
@@ -103,29 +118,14 @@ int screen_get_str_height(const std::string str);
 void screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b);
 void screen_clear(u8 r, u8 g, u8 b);
 
+typedef enum {
+    SELECTED,
+    BACK,
+    APP_CLOSING,
+    MANUAL_BREAK
+} SelectionResult;
+
 bool ui_select_file(const std::string rootDirectory, const std::string extension, std::string* selectedFile, std::function<bool()> onLoop);
 bool ui_select_app(MediaType mediaType, App* selectedApp, std::function<bool()> onLoop);
-
-void input_poll();
-bool input_is_released(Button button);
-bool input_is_pressed(Button button);
-bool input_is_held(Button button);
-Touch input_get_touch();
-
-const std::string app_get_platform_name(AppPlatform platform);
-const std::string app_get_category_name(AppCategory category);
-std::vector<App> app_list(MediaType mediaType);
-bool app_install(MediaType mediaType, const std::string path, std::function<bool(int)> onProgress);
-bool app_delete(App app);
-bool app_launch(App app);
-
-u64 fs_get_free_space(MediaType mediaType);
-
-bool platform_init();
-void platform_cleanup();
-bool platform_is_running();
-u64 platform_get_time();
-void platform_delay(int ms);
-void platform_printf(const char* format, ...);
 
 #endif
