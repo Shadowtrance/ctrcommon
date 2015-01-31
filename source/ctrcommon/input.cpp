@@ -37,9 +37,5 @@ bool input_is_held(Button button) {
 Touch input_get_touch() {
     touchPosition pos;
     hidTouchRead(&pos);
-
-    Touch touch;
-    touch.x = pos.px;
-    touch.y = pos.py;
-    return touch;
+	return {pos.px, pos.py};
 }

@@ -8,28 +8,29 @@
 #include <sstream>
 #include <iomanip>
 
-typedef struct {
-    std::string id;
-    std::string name;
-    std::vector<std::string> details;
-} SelectableElement;
+struct ui_alphabetize {
+	inline bool operator() (SelectableElement a, SelectableElement b) {
+		return strcasecmp(a.name.c_str(), b.name.c_str()) < 0;
+	}
+};
 
-SelectionResult ui_select(std::vector<SelectableElement> elements, SelectableElement* selected, bool enableBack, std::function<bool()> onLoop) {
+bool ui_select(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement>& currElements, bool& elementsDirty)> onLoop, std::function<bool(SelectableElement)> onSelect) {
     u32 cursor = 0;
     u32 scroll = 0;
 
     u32 selectionScroll = 0;
     u64 selectionScrollEndTime = 0;
 
+	bool elementsDirty = false;
+	std::sort(elements.begin(), elements.end(), ui_alphabetize());
     while(platform_is_running()) {
         input_poll();
         if(input_is_pressed(BUTTON_A)) {
-            *selected = elements.at(cursor);
-            return SELECTED;
-        }
-
-        if(enableBack && input_is_pressed(BUTTON_B)) {
-            return BACK;
+            SelectableElement select = elements.at(cursor);
+			if(onSelect(select)) {
+				*selected = select;
+				return true;
+			}
         }
 
         if(input_is_pressed(BUTTON_DOWN) && cursor < elements.size() - 1) {
@@ -55,7 +56,7 @@ SelectionResult ui_select(std::vector<SelectableElement> elements, SelectableEle
         screen_begin_draw(BOTTOM_SCREEN);
         screen_clear(0, 0, 0);
 
-        u32 screenWidth = (u32) screen_get_width();
+        u16 screenWidth = screen_get_width();
         for(std::vector<SelectableElement>::iterator it = elements.begin() + scroll; it != elements.begin() + scroll + 20 && it != elements.end(); it++) {
             SelectableElement element = *it;
             u32 index = (u32) (it - elements.begin());
@@ -63,7 +64,7 @@ SelectionResult ui_select(std::vector<SelectableElement> elements, SelectableEle
             int offset = 0;
             if(index == cursor) {
                 color = 0;
-                screen_fill(0, (int) (index - scroll) * 12, (int) screenWidth, screen_get_str_height(element.name), 255, 255, 255);
+                screen_fill(0, (int) (index - scroll) * 12, screenWidth, screen_get_str_height(element.name), 255, 255, 255);
                 u32 width = (u32) screen_get_str_width(element.name);
                 if(width > screenWidth) {
                     if(selectionScroll + screenWidth >= width) {
@@ -91,23 +92,32 @@ SelectionResult ui_select(std::vector<SelectableElement> elements, SelectableEle
 
         SelectableElement currSelected = elements.at(cursor);
         if(currSelected.details.size() != 0) {
+			std::stringstream details;
             for(std::vector<std::string>::iterator it = currSelected.details.begin(); it != currSelected.details.end(); it++) {
-                std::string detail = *it;
-                u32 index = (u32) (it - currSelected.details.begin());
-                screen_draw_string(detail, 0, (int) index * 12, 255, 255, 255);
+                details << *it << "\n";
             }
+
+			screen_draw_string(details.str(), 0, 0, 255, 255, 255);
         }
 
-        bool result = onLoop();
+        bool result = onLoop(elements, elementsDirty);
+		if(elementsDirty) {
+			cursor = 0;
+			scroll = 0;
+			selectionScroll = 0;
+			selectionScrollEndTime = 0;
+			std::sort(elements.begin(), elements.end(), ui_alphabetize());
+			elementsDirty = false;
+		}
 
         screen_end_draw();
         screen_swap_buffers();
         if(result) {
-            return MANUAL_BREAK;
+            break;
         }
     }
 
-    return APP_CLOSING;
+	return false;
 }
 
 bool ui_is_directory(const std::string path) {
@@ -120,88 +130,100 @@ bool ui_is_directory(const std::string path) {
     return true;
 }
 
-struct ui_alphabetize {
-    inline bool operator() (SelectableElement a, SelectableElement b) {
-        return strcasecmp(a.name.c_str(), b.name.c_str()) < 0;
-    }
-};
+void ui_get_dir_contents(std::vector<SelectableElement>& elements, const std::string directory, std::vector<std::string> extensions) {
+	elements.clear();
+	elements.push_back({".", "."});
+	elements.push_back({"..", ".."});
 
-std::vector<SelectableElement> ui_get_dir_elements(const std::string directory, const std::string extension) {
-    std::vector<SelectableElement> elements;
-    DIR *dir = opendir(directory.c_str());
-    if(dir != NULL) {
-        while(true) {
-            struct dirent *ent = readdir(dir);
-            if(ent == NULL) {
-                break;
-            }
+	DIR *dir = opendir(directory.c_str());
+	if(dir == NULL) {
+		return;
+	}
 
-            const std::string dirName = std::string(ent->d_name);
-            const std::string path = directory + "/" + dirName;
-            if(ui_is_directory(path)) {
-                elements.push_back({path, dirName});
-            } else {
-                std::string::size_type dotPos = path.rfind('.');
-                if(dotPos != std::string::npos && path.substr(dotPos + 1).compare(extension) == 0) {
-                    struct stat st;
-                    stat(path.c_str(), &st);
+	while(true) {
+		struct dirent *ent = readdir(dir);
+		if(ent == NULL) {
+			break;
+		}
 
-                    std::vector<std::string> info;
-                    std::stringstream stream;
-                    stream << "File Size: " << st.st_size << " bytes (" << std::fixed << std::setprecision(2) << st.st_size / 1024.0f / 1024.0f << "MB)";
-                    info.push_back(stream.str());
-                    elements.push_back({path, dirName, info});
-                }
-            }
-        }
+		const std::string dirName = std::string(ent->d_name);
+		const std::string path = directory + "/" + dirName;
+		if(ui_is_directory(path)) {
+			elements.push_back({path, dirName});
+		} else {
+			std::string::size_type dotPos = path.rfind('.');
+			if(extensions.empty() || (dotPos != std::string::npos && std::find(extensions.begin(), extensions.end(), path.substr(dotPos + 1)) != extensions.end())) {
+				struct stat st;
+				stat(path.c_str(), &st);
 
-        closedir(dir);
-    }
+				std::vector<std::string> info;
+				std::stringstream stream;
+				stream << "File Size: " << st.st_size << " bytes (" << std::fixed << std::setprecision(2) << st.st_size / 1024.0f / 1024.0f << "MB)";
+				info.push_back(stream.str());
+				elements.push_back({path, dirName, info});
+			}
+		}
+	}
 
-    std::sort(elements.begin(), elements.end(), ui_alphabetize());
-    elements.insert(elements.begin(), {"..", ".."});
-    elements.insert(elements.begin(), {".", "."});
-    return elements;
+	closedir(dir);
 }
 
-bool ui_select_file(const std::string rootDirectory, const std::string extension, std::string* selectedFile, std::function<bool()> onLoop) {
+bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop) {
     std::stack<std::string> directoryStack;
     std::string currDirectory = rootDirectory;
-    while(platform_is_running()) {
-        SelectableElement selected;
-        std::vector<SelectableElement> contents = ui_get_dir_elements(currDirectory, extension);
-        SelectionResult result = ui_select(contents, &selected, !directoryStack.empty(), onLoop);
-        if(result == APP_CLOSING || result == MANUAL_BREAK) {
-            break;
-        } else if(result == BACK) {
-            currDirectory = directoryStack.top();
-            directoryStack.pop();
-        } else if(result == SELECTED) {
-            if(selected.name.compare(".") == 0) {
-                continue;
-            } else if(selected.name.compare("..") == 0) {
-                if(directoryStack.empty()) {
-                    continue;
-                }
 
-                currDirectory = directoryStack.top();
-                directoryStack.pop();
-            } else {
-                if(ui_is_directory(selected.id)) {
-                    directoryStack.push(currDirectory);
-                    currDirectory = selected.id;
-                } else {
-                    *selectedFile = selected.id;
-                    return true;
-                }
-            }
-        }
-    }
+	std::vector<SelectableElement> elements;
+	ui_get_dir_contents(elements, currDirectory, extensions);
 
-    return false;
+	bool changeDirectory = false;
+	SelectableElement selected;
+	bool result = ui_select(&selected, elements, [&] (std::vector<SelectableElement>& currElements, bool& elementsDirty) {
+		if(onLoop()) {
+			return true;
+		}
+
+		if(input_is_pressed(BUTTON_B) && !directoryStack.empty()) {
+			currDirectory = directoryStack.top();
+			directoryStack.pop();
+			changeDirectory = true;
+		}
+
+		if(changeDirectory) {
+			ui_get_dir_contents(currElements, currDirectory, extensions);
+			elementsDirty = true;
+			changeDirectory = false;
+		}
+
+		return false;
+	}, [&] (SelectableElement select) {
+		if(select.name.compare(".") == 0) {
+			return false;
+		} else if(select.name.compare("..") == 0) {
+			if(!directoryStack.empty()) {
+				currDirectory = directoryStack.top();
+				directoryStack.pop();
+				changeDirectory = true;
+			}
+
+			return false;
+		} else if(ui_is_directory(select.id)) {
+			directoryStack.push(currDirectory);
+			currDirectory = select.id;
+			changeDirectory = true;
+			return false;
+		}
+
+		return true;
+	});
+
+	if(result) {
+		*selectedFile = selected.id;
+	}
+
+    return result;
 }
 
-bool ui_select_app(MediaType mediaType, App* selectedApp, std::function<bool()> onLoop) {
+bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop) {
     std::vector<App> apps = app_list(mediaType);
     std::vector<SelectableElement> elements;
     for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
@@ -227,20 +249,21 @@ bool ui_select_app(MediaType mediaType, App* selectedApp, std::function<bool()> 
         elements.push_back({"None", "None"});
     }
 
-    std::sort(elements.begin(), elements.end(), ui_alphabetize());
-
     SelectableElement selected;
-    SelectionResult result = ui_select(elements, &selected, false, onLoop);
-    if(result != APP_CLOSING && result != MANUAL_BREAK && selected.id.compare("None") != 0) {
+    bool result = ui_select(&selected, elements, [&] (std::vector<SelectableElement>& currElements, bool& elementsDirty) {
+		return onLoop();
+	}, [&] (SelectableElement select) {
+		return select.name.compare("None") != 0;
+	});
+
+    if(result) {
         for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
             App app = *it;
             if(app.titleId == (u64) strtoll(selected.id.c_str(), NULL, 16)) {
                 *selectedApp = app;
             }
         }
-
-        return true;
     }
 
-    return false;
+    return result;
 }

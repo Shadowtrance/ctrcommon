@@ -60,7 +60,7 @@ typedef struct {
 const std::string app_get_platform_name(AppPlatform platform);
 const std::string app_get_category_name(AppCategory category);
 std::vector<App> app_list(MediaType mediaType);
-bool app_install(MediaType mediaType, const std::string path, std::function<bool(int)> onProgress);
+bool app_install(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
 bool app_delete(App app);
 bool app_launch(App app);
 
@@ -108,24 +108,25 @@ bool screen_begin_draw(Screen screen);
 bool screen_end_draw();
 void screen_swap_buffers_quick();
 void screen_swap_buffers();
-void screen_take_screenshot();
-int screen_get_width();
-int screen_get_height();
-void screen_draw(int x, int y, u8 r, u8 g, u8 b);
-void screen_fill(int x, int y, int width, int height, u8 r, u8 g, u8 b);
-int screen_get_str_width(const std::string str);
-int screen_get_str_height(const std::string str);
-void screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b);
-void screen_clear(u8 r, u8 g, u8 b);
+u16 screen_get_width();
+u16 screen_get_height();
+bool screen_read_pixels(u8* dest, int srcX, int srcY, int dstX, int dstY, u16 width, u16 height);
+bool screen_take_screenshot();
+bool screen_draw(int x, int y, u8 r, u8 g, u8 b);
+bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b);
+bool screen_clear(u8 r, u8 g, u8 b);
+u16 screen_get_str_width(const std::string str);
+u16 screen_get_str_height(const std::string str);
+bool screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b);
 
-typedef enum {
-    SELECTED,
-    BACK,
-    APP_CLOSING,
-    MANUAL_BREAK
-} SelectionResult;
+typedef struct {
+	std::string id;
+	std::string name;
+	std::vector<std::string> details;
+} SelectableElement;
 
-bool ui_select_file(const std::string rootDirectory, const std::string extension, std::string* selectedFile, std::function<bool()> onLoop);
-bool ui_select_app(MediaType mediaType, App* selectedApp, std::function<bool()> onLoop);
+bool ui_select(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement>& currElements, bool& elementsDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect);
+bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop);
+bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop);
 
 #endif

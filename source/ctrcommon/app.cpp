@@ -10,27 +10,19 @@ bool amInitialized = false;
 bool nsInitialized = false;
 
 bool am_prepare() {
-    if(!amInitialized) {
-        if(amInit() != 0) {
-            return false;
-        }
-
+    if(!amInitialized && amInit() == 0) {
         amInitialized = true;
     }
 
-    return true;
+    return amInitialized;
 }
 
 bool ns_prepare() {
-    if(!nsInitialized) {
-        if(nsInit() != 0) {
-            return false;
-        }
-
+    if(!nsInitialized && nsInit() == 0) {
         nsInitialized = true;
     }
 
-    return true;
+    return nsInitialized;
 }
 
 u8 app_mediatype_to_byte(MediaType mediaType) {
