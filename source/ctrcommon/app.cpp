@@ -6,8 +6,8 @@
 
 #include <3ds.h>
 
-bool amInitialized = false;
-bool nsInitialized = false;
+static bool amInitialized = false;
+static bool nsInitialized = false;
 
 bool am_prepare() {
     if(!amInitialized && amInit() == 0) {
@@ -23,6 +23,18 @@ bool ns_prepare() {
     }
 
     return nsInitialized;
+}
+
+void apps_cleanup() {
+	if(amInitialized) {
+		amExit();
+		amInitialized = false;
+	}
+
+	if(nsInitialized) {
+		nsExit();
+		nsInitialized = false;
+	}
 }
 
 u8 app_mediatype_to_byte(MediaType mediaType) {

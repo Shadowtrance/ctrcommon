@@ -5,8 +5,8 @@
 
 #include <3ds.h>
 
-extern bool amInitialized;
-extern bool nsInitialized;
+extern void apps_cleanup();
+extern void sockets_cleanup();
 
 bool platform_init() {
     if(srvInit() != 0 || aptInit() != 0 || hidInit(NULL) != 0 || fsInit() != 0 || sdmcInit() != 0) {
@@ -18,15 +18,8 @@ bool platform_init() {
 }
 
 void platform_cleanup() {
-    if(amInitialized) {
-        amExit();
-        amInitialized = false;
-    }
-
-    if(nsInitialized) {
-        nsExit();
-        nsInitialized = false;
-    }
+	apps_cleanup();
+	sockets_cleanup();
 
     sdmcExit();
     fsExit();
