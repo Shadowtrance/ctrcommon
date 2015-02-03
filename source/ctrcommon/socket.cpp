@@ -148,34 +148,6 @@ int socket_connect(const std::string ipAddress, u16 port) {
 	return fd;
 }
 
-int socket_send(int fd, u8* buffer, u32 bufferSize) {
-	if(!sockets_init()) {
-		return -1;
-	}
-
-	int sent = send(fd, buffer, bufferSize, 0);
-	if(sent < 0) {
-		errno = SOC_GetErrno();
-		return -1;
-	}
-
-	return sent;
-}
-
-int socket_receive(int fd, u8* buffer, u32 bufferSize) {
-	if(!sockets_init()) {
-		return -1;
-	}
-
-	int received = recv(fd, buffer, bufferSize, 0);
-	if(received < 0) {
-		errno = SOC_GetErrno();
-		return -1;
-	}
-
-	return received;
-}
-
 void socket_close(int fd) {
 	if(!sockets_init()) {
 		return;
