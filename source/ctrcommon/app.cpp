@@ -126,7 +126,7 @@ std::vector<App> app_list(MediaType mediaType) {
     return titles;
 }
 
-bool app_install(MediaType mediaType, const std::string path, std::function<bool(int)> onProgress) {
+bool app_install(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
     if(!am_prepare()) {
         return false;
     }

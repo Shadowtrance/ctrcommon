@@ -128,5 +128,8 @@ typedef struct {
 bool ui_select(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement>& currElements, bool& elementsDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect);
 bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop);
 bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop);
+void ui_display_message(const std::string message);
+bool ui_prompt(const std::string message, bool question);
+void ui_display_progress(const std::string operation, const std::string details, bool quickSwap, int progress);
 
 #endif

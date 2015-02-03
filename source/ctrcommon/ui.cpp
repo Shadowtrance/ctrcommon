@@ -267,3 +267,75 @@ bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> 
 
     return result;
 }
+
+void ui_display_message(const std::string message) {
+	screen_begin_draw(TOP_SCREEN);
+	screen_clear(0, 0, 0);
+	screen_draw_string(message, (screen_get_width() - screen_get_str_width(message)) / 2, (screen_get_height() - screen_get_str_height(message)) / 2, 255, 255, 255);
+	screen_end_draw();
+	screen_swap_buffers();
+}
+
+bool ui_prompt(const std::string message, bool question) {
+	std::stringstream stream;
+	stream << message << "\n";
+	if(question) {
+		stream << "Press A to confirm, B to cancel." << "\n";
+	} else {
+		stream << "Press Start to continue." << "\n";
+	}
+
+	std::string str = stream.str();
+	while(platform_is_running()) {
+		input_poll();
+		if(question) {
+			if(input_is_pressed(BUTTON_A)) {
+				return true;
+			}
+
+			if(input_is_pressed(BUTTON_B)) {
+				return false;
+			}
+		} else {
+			if(input_is_pressed(BUTTON_START)) {
+				return true;
+			}
+		}
+
+		ui_display_message(str);
+	}
+
+	return false;
+}
+
+void ui_display_progress(const std::string operation, const std::string details, bool quickSwap, int progress) {
+	std::stringstream stream;
+	stream << operation << ": [";
+	int progressBars = progress / 4;
+	for(int i = 0; i < 25; i++) {
+		if(i < progressBars) {
+			stream << '|';
+		} else {
+			stream << ' ';
+		}
+	}
+
+	std::ios state(NULL);
+	state.copyfmt(stream);
+	stream << "] " << std::setfill(' ') << std::setw(3) << progress;
+	stream.copyfmt(state);
+	stream << "%" << "\n";
+	stream << details << "\n";
+
+	std::string str = stream.str();
+
+	screen_begin_draw(TOP_SCREEN);
+	screen_clear(0, 0, 0);
+	screen_draw_string(str, (screen_get_width() - screen_get_str_width(str)) / 2, (screen_get_height() - screen_get_str_height(str)) / 2, 255, 255, 255);
+	screen_end_draw();
+	if(quickSwap) {
+		screen_swap_buffers_quick();
+	} else {
+		screen_swap_buffers();
+	}
+}
