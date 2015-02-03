@@ -91,11 +91,7 @@ int socket_accept(int fd) {
 
 	int afd = accept(fd, (struct sockaddr*)NULL, NULL);
 	if(afd < 0) {
-		int err = SOC_GetErrno();
-		if(err != -EWOULDBLOCK && err != EWOULDBLOCK) {
-			errno = SOC_GetErrno();
-		}
-
+		errno = SOC_GetErrno();
 		return -1;
 	}
 
@@ -105,7 +101,7 @@ int socket_accept(int fd) {
 		return -1;
 	}
 
-	if(fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) != 0) {
+	if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
 		errno = SOC_GetErrno();
 		return -1;
 	}
@@ -144,12 +140,40 @@ int socket_connect(const std::string ipAddress, u16 port) {
 		return -1;
 	}
 
-	if(fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) != 0) {
+	if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
 		errno = SOC_GetErrno();
 		return -1;
 	}
 
 	return fd;
+}
+
+int socket_send(int fd, u8* buffer, u32 bufferSize) {
+	if(!sockets_init()) {
+		return -1;
+	}
+
+	int sent = send(fd, buffer, bufferSize, 0);
+	if(sent < 0) {
+		errno = SOC_GetErrno();
+		return -1;
+	}
+
+	return sent;
+}
+
+int socket_receive(int fd, u8* buffer, u32 bufferSize) {
+	if(!sockets_init()) {
+		return -1;
+	}
+
+	int received = recv(fd, buffer, bufferSize, 0);
+	if(received < 0) {
+		errno = SOC_GetErrno();
+		return -1;
+	}
+
+	return received;
 }
 
 void socket_close(int fd) {
@@ -158,30 +182,4 @@ void socket_close(int fd) {
 	}
 
 	closesocket(fd);
-}
-
-bool socket_send(int fd, u8* buffer, u32 bufferSize) {
-	if(!sockets_init()) {
-		return false;
-	}
-
-	if(send(fd, buffer, bufferSize, 0) < 0) {
-		errno = SOC_GetErrno();
-		return false;
-	}
-
-	return true;
-}
-
-bool socket_receive(int fd, u8* buffer, u32 bufferSize) {
-	if(!sockets_init()) {
-		return false;
-	}
-
-	if(recv(fd, buffer, bufferSize, 0) < 0) {
-		errno = SOC_GetErrno();
-		return false;
-	}
-
-	return true;
 }

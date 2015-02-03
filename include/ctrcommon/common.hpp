@@ -122,9 +122,9 @@ bool screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b);
 int socket_listen(u16 port);
 int socket_accept(int fd);
 int socket_connect(const std::string ipAddress, u16 port);
+int socket_send(int fd, u8* buffer, u32 bufferSize);
+int socket_receive(int fd, u8* buffer, u32 bufferSize);
 void socket_close(int fd);
-bool socket_send(int fd, u8* buffer, u32 bufferSize);
-bool socket_receive(int fd, u8* buffer, u32 bufferSize);
 
 typedef struct {
 	std::string id;
