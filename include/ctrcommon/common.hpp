@@ -25,6 +25,7 @@ bool platform_is_running();
 u64 platform_get_time();
 void platform_delay(int ms);
 void platform_printf(const char* format, ...);
+bool platform_is_io_waiting();
 
 typedef enum {
     NAND,
@@ -60,9 +61,10 @@ typedef struct {
 const std::string app_get_platform_name(AppPlatform platform);
 const std::string app_get_category_name(AppCategory category);
 std::vector<App> app_list(MediaType mediaType);
-bool app_install(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
-bool app_delete(App app);
-bool app_launch(App app);
+int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
+int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::function<bool(int progress)> onProgress);
+int app_delete(App app);
+int app_launch(App app);
 
 u64 fs_get_free_space(MediaType mediaType);
 
@@ -119,9 +121,14 @@ u16 screen_get_str_width(const std::string str);
 u16 screen_get_str_height(const std::string str);
 bool screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b);
 
+u64 htonll(u64 value);
+u64 ntohll(u64 value);
+u32 socket_get_host_ip();
 int socket_listen(u16 port);
 int socket_accept(int fd);
 int socket_connect(const std::string ipAddress, u16 port);
+int socket_read(int fd, void* buffer, u32 bufferSize);
+int socket_write(int fd, void* buffer, u32 bufferSize);
 void socket_close(int fd);
 
 typedef struct {
@@ -130,11 +137,17 @@ typedef struct {
 	std::vector<std::string> details;
 } SelectableElement;
 
+typedef struct {
+	int socket;
+	u64 fileSize;
+} RemoteFile;
+
 bool ui_select(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement>& currElements, bool& elementsDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect);
 bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop);
 bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop);
 void ui_display_message(const std::string message);
 bool ui_prompt(const std::string message, bool question);
 void ui_display_progress(const std::string operation, const std::string details, bool quickSwap, int progress);
+RemoteFile ui_accept_remote_file();
 
 #endif

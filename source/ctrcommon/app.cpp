@@ -1,5 +1,6 @@
 #include "ctrcommon/common.hpp"
 
+#include <sys/unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -138,50 +139,66 @@ std::vector<App> app_list(MediaType mediaType) {
     return titles;
 }
 
-bool app_install(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
+int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
+	FILE* fd = fopen(path.c_str(), "r");
+	if(!fd) {
+		return -1;
+	}
+
+	fseek(fd, 0, SEEK_END);
+	u64 size = (u64) ftell(fd);
+	fseek(fd, 0, SEEK_SET);
+
+	int ret = app_install(mediaType, fileno(fd), false, size, onProgress);
+
+	fclose(fd);
+	return ret;
+}
+
+int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::function<bool(int progress)> onProgress) {
     if(!am_prepare()) {
-        return false;
+        return -1;
     }
-
-    FILE* fd = fopen(path.c_str(), "r");
-    if(!fd) {
-        return false;
-    }
-
-    fseek(fd, 0, SEEK_END);
-    u64 size = (u64) ftell(fd);
-    fseek(fd, 0, SEEK_SET);
 
     if(onProgress != NULL) {
         onProgress(0);
     }
 
     Handle ciaHandle;
-    if(AM_StartCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle) != 0) {
-        return false;
+	int startRet = AM_StartCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
+    if(startRet != 0) {
+        return startRet;
     }
 
-    FSFILE_SetSize(ciaHandle, size);
-
-    u32 bufSize = 1024 * 256; // 256KB
+    u32 bufSize = 1024 * 16; // 16KB
     void* buf = malloc(bufSize);
     bool cancelled = false;
-    for(u64 pos = 0; pos < size; pos += bufSize) {
-        if(onProgress != NULL && !onProgress((int) ((pos / (float) size) * 100))) {
-            AM_CancelCIAInstall(&ciaHandle);
-            cancelled = true;
-            break;
-        }
+	u64 pos = 0;
+    while(platform_is_running()) {
+		if(onProgress != NULL && !onProgress(size != 0 ? (int) ((pos / (float) size) * 100) : 0)) {
+			AM_CancelCIAInstall(&ciaHandle);
+			cancelled = true;
+			break;
+		}
 
-        u32 bytesRead = fread(buf, 1, bufSize, fd);
-        FSFILE_Write(ciaHandle, NULL, pos, buf, bytesRead, FS_WRITE_NOFLUSH);
+        int bytesRead = socket ? socket_read(fd, buf, bufSize) : read(fd, buf, bufSize);
+		if(bytesRead <= 0) {
+			break;
+		}
+
+        FSFILE_Write(ciaHandle, NULL, pos, buf, (u32) bytesRead, FS_WRITE_NOFLUSH);
+		pos += bytesRead;
     }
 
     free(buf);
-    fclose(fd);
+
+	if(size != 0 && pos != size) {
+		AM_CancelCIAInstall(&ciaHandle);
+		return -1;
+	}
 
     if(cancelled) {
-        return false;
+        return -1;
     }
 
     if(onProgress != NULL) {
@@ -190,24 +207,24 @@ bool app_install(MediaType mediaType, const std::string path, std::function<bool
 
     Result res = AM_FinishCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
     if(res != 0 && (u32) res != 0xC8A044DC) { // Happens when already installed, but seems to have succeeded anyway...
-        return false;
+		return res;
     }
 
-    return true;
+    return 0;
 }
 
-bool app_delete(App app) {
+int app_delete(App app) {
     if(!am_prepare()) {
-        return false;
+        return -1;
     }
 
-    return AM_DeleteAppTitle(app_mediatype_to_byte(app.mediaType), app.titleId) == 0;
+    return AM_DeleteAppTitle(app_mediatype_to_byte(app.mediaType), app.titleId);
 }
 
-bool app_launch(App app) {
+int app_launch(App app) {
     if(!ns_prepare()) {
-        return false;
+        return -1;
     }
 
-    return NS_RebootToTitle(app.mediaType, app.titleId) == 0;
+    return NS_RebootToTitle(app.mediaType, app.titleId);
 }

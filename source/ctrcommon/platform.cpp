@@ -1,5 +1,6 @@
 #include "ctrcommon/common.hpp"
 
+#include <sys/errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -55,4 +56,8 @@ void platform_printf(const char* format, ...) {
     va_end(args2);
 
     svcOutputDebugString(str, strlen(str));
+}
+
+bool platform_is_io_waiting() {
+	return errno == EWOULDBLOCK || errno == -EWOULDBLOCK || errno == EINPROGRESS || errno == -EINPROGRESS || errno == EAGAIN || errno == -EAGAIN;
 }

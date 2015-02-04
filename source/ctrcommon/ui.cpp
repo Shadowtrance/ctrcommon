@@ -1,12 +1,14 @@
 #include "ctrcommon/common.hpp"
 
 #include <sys/dirent.h>
+#include <sys/errno.h>
 #include <string.h>
 
 #include <stack>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <arpa/inet.h>
 
 struct ui_alphabetize {
 	inline bool operator() (SelectableElement a, SelectableElement b) {
@@ -338,4 +340,59 @@ void ui_display_progress(const std::string operation, const std::string details,
 	} else {
 		screen_swap_buffers();
 	}
+}
+
+RemoteFile ui_accept_remote_file() {
+	ui_display_message("Initializing...");
+
+	int listen = socket_listen(5000);
+	if(listen < 0) {
+		std::stringstream errStream;
+		errStream << "Failed to initialize: Error " << errno;
+		ui_prompt(errStream.str(), false);
+		return {-1, 0};
+	}
+
+	std::stringstream waitStream;
+	waitStream << "Waiting for peer to connect..." << "\n";
+	waitStream << "IP: " << inet_ntoa({socket_get_host_ip()}) << "\n";
+	waitStream << "Press B to cancel." << "\n";
+	ui_display_message(waitStream.str());
+
+	int socket;
+	while((socket = socket_accept(listen)) < 0) {
+		if(!platform_is_io_waiting()) {
+			socket_close(listen);
+
+			std::stringstream errStream;
+			errStream << "Failed to accept peer: Error " << errno;
+			ui_prompt(errStream.str(), false);
+			return {-1, 0};
+		} else if(platform_is_running()) {
+			input_poll();
+			if(input_is_pressed(BUTTON_B)) {
+				socket_close(listen);
+				return {-1, 0};
+			}
+		} else {
+			return {-1, 0};
+		}
+	}
+
+	socket_close(listen);
+
+	ui_display_message("Reading info...");
+
+	u64 fileSize;
+	if(socket_read(socket, &fileSize, sizeof(fileSize)) < 0) {
+		socket_close(socket);
+
+		std::stringstream errStream;
+		errStream << "Failed to read info: Error " << errno;
+		ui_prompt(errStream.str(), false);
+		return {-1, 0};
+	}
+
+	fileSize = ntohll(fileSize);
+	return {socket, fileSize};
 }

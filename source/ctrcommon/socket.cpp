@@ -1,12 +1,10 @@
+#include "ctrcommon/common.hpp"
+
 #include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/errno.h>
-#include <sys/socket.h>
 #include <fcntl.h>
 #include <string.h>
 #include <malloc.h>
-
-#include <string>
 
 #include <3ds.h>
 
@@ -41,6 +39,27 @@ void sockets_cleanup() {
 	free(socBuffer);
 	socBuffer = NULL;
 	SOC_Shutdown();
+}
+
+u64 htonll(u64 value) {
+	static const int num = 42;
+	if(*((char*) &num) == num) {
+		return (((uint64_t) htonl((u32) value)) << 32) + htonl((u32) (value >> 32));
+	} else {
+		return value;
+	}
+}
+
+u64 ntohll(u64 value) {
+	return htonll(value);
+}
+
+u32 socket_get_host_ip() {
+	if(!sockets_init()) {
+		return 0;
+	}
+
+	return (u32) gethostid();
 }
 
 int socket_listen(u16 port) {
@@ -89,19 +108,19 @@ int socket_accept(int fd) {
 		return -1;
 	}
 
-	int afd = accept(fd, (struct sockaddr*)NULL, NULL);
+	int afd = accept(fd, (struct sockaddr*) NULL, NULL);
 	if(afd < 0) {
 		errno = SOC_GetErrno();
 		return -1;
 	}
 
-	int flags = fcntl(fd, F_GETFL);
+	int flags = fcntl(afd, F_GETFL);
 	if(flags == -1) {
 		errno = SOC_GetErrno();
 		return -1;
 	}
 
-	if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
+	if(fcntl(afd, F_SETFL, flags | O_NONBLOCK) != 0) {
 		errno = SOC_GetErrno();
 		return -1;
 	}
@@ -146,6 +165,60 @@ int socket_connect(const std::string ipAddress, u16 port) {
 	}
 
 	return fd;
+}
+
+int socket_read(int fd, void* buffer, u32 bufferSize) {
+	if(!sockets_init()) {
+		return -1;
+	}
+
+	u8* orig = (u8*) buffer;
+	u8* ptr = orig;
+	u32 currSize = bufferSize;
+	while(ptr != orig + bufferSize) {
+		int len = recv(fd, ptr, currSize, 0);
+		if(len < 0) {
+			if(platform_is_io_waiting()) {
+				continue;
+			}
+
+			errno = SOC_GetErrno();
+			return -1;
+		} else if(len == 0) {
+			break;
+		}
+
+		ptr += len;
+		currSize -= len;
+	}
+
+	return (int) (bufferSize - currSize);
+}
+
+int socket_write(int fd, void* buffer, u32 bufferSize) {
+	if(!sockets_init()) {
+		return -1;
+	}
+
+	u8* orig = (u8*) buffer;
+	u8* ptr = orig;
+	u32 currSize = bufferSize;
+	while(ptr != orig + bufferSize) {
+		int len = send(fd, ptr, currSize, 0);
+		if(len < 0) {
+			if(platform_is_io_waiting()) {
+				continue;
+			}
+
+			errno = SOC_GetErrno();
+			return -1;
+		}
+
+		ptr += len;
+		currSize -= len;
+	}
+
+	return (int) (bufferSize - currSize);
 }
 
 void socket_close(int fd) {
