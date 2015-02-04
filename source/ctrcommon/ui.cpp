@@ -11,98 +11,98 @@
 #include <arpa/inet.h>
 
 struct ui_alphabetize {
-	inline bool operator() (SelectableElement a, SelectableElement b) {
+	inline bool operator()(SelectableElement a, SelectableElement b) {
 		return strcasecmp(a.name.c_str(), b.name.c_str()) < 0;
 	}
 };
 
-bool ui_select(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement>& currElements, bool& elementsDirty)> onLoop, std::function<bool(SelectableElement)> onSelect) {
-    u32 cursor = 0;
-    u32 scroll = 0;
+bool ui_select(SelectableElement *selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty)> onLoop, std::function<bool(SelectableElement)> onSelect) {
+	u32 cursor = 0;
+	u32 scroll = 0;
 
-    u32 selectionScroll = 0;
-    u64 selectionScrollEndTime = 0;
+	u32 selectionScroll = 0;
+	u64 selectionScrollEndTime = 0;
 
 	bool elementsDirty = false;
 	std::sort(elements.begin(), elements.end(), ui_alphabetize());
-    while(platform_is_running()) {
-        input_poll();
-        if(input_is_pressed(BUTTON_A)) {
-            SelectableElement select = elements.at(cursor);
+	while(platform_is_running()) {
+		input_poll();
+		if(input_is_pressed(BUTTON_A)) {
+			SelectableElement select = elements.at(cursor);
 			if(onSelect(select)) {
 				*selected = select;
 				return true;
 			}
-        }
+		}
 
-        if(input_is_pressed(BUTTON_DOWN) && cursor < elements.size() - 1) {
-            cursor++;
-            if(cursor >= scroll + 20) {
-                scroll++;
-            }
+		if(input_is_pressed(BUTTON_DOWN) && cursor < elements.size() - 1) {
+			cursor++;
+			if(cursor >= scroll + 20) {
+				scroll++;
+			}
 
-            selectionScroll = 0;
-            selectionScrollEndTime = 0;
-        }
+			selectionScroll = 0;
+			selectionScrollEndTime = 0;
+		}
 
-        if(input_is_pressed(BUTTON_UP) && cursor > 0) {
-            cursor--;
-            if(cursor < scroll) {
-                scroll--;
-            }
+		if(input_is_pressed(BUTTON_UP) && cursor > 0) {
+			cursor--;
+			if(cursor < scroll) {
+				scroll--;
+			}
 
-            selectionScroll = 0;
-            selectionScrollEndTime = 0;
-        }
+			selectionScroll = 0;
+			selectionScrollEndTime = 0;
+		}
 
-        screen_begin_draw(BOTTOM_SCREEN);
-        screen_clear(0, 0, 0);
+		screen_begin_draw(BOTTOM_SCREEN);
+		screen_clear(0, 0, 0);
 
-        u16 screenWidth = screen_get_width();
-        for(std::vector<SelectableElement>::iterator it = elements.begin() + scroll; it != elements.begin() + scroll + 20 && it != elements.end(); it++) {
-            SelectableElement element = *it;
-            u32 index = (u32) (it - elements.begin());
-            u8 color = 255;
-            int offset = 0;
-            if(index == cursor) {
-                color = 0;
-                screen_fill(0, (int) (index - scroll) * 12, screenWidth, screen_get_str_height(element.name), 255, 255, 255);
-                u32 width = (u32) screen_get_str_width(element.name);
-                if(width > screenWidth) {
-                    if(selectionScroll + screenWidth >= width) {
-                        if(selectionScrollEndTime == 0) {
-                            selectionScrollEndTime = platform_get_time();
-                        } else if(platform_get_time() - selectionScrollEndTime >= 4000) {
-                            selectionScroll = 0;
-                            selectionScrollEndTime = 0;
-                        }
-                    } else {
-                        selectionScroll++;
-                    }
-                }
+		u16 screenWidth = screen_get_width();
+		for(std::vector<SelectableElement>::iterator it = elements.begin() + scroll; it != elements.begin() + scroll + 20 && it != elements.end(); it++) {
+			SelectableElement element = *it;
+			u32 index = (u32) (it - elements.begin());
+			u8 color = 255;
+			int offset = 0;
+			if(index == cursor) {
+				color = 0;
+				screen_fill(0, (int) (index - scroll) * 12, screenWidth, screen_get_str_height(element.name), 255, 255, 255);
+				u32 width = (u32) screen_get_str_width(element.name);
+				if(width > screenWidth) {
+					if(selectionScroll + screenWidth >= width) {
+						if(selectionScrollEndTime == 0) {
+							selectionScrollEndTime = platform_get_time();
+						} else if(platform_get_time() - selectionScrollEndTime >= 4000) {
+							selectionScroll = 0;
+							selectionScrollEndTime = 0;
+						}
+					} else {
+						selectionScroll++;
+					}
+				}
 
-                offset = -selectionScroll;
-            }
+				offset = -selectionScroll;
+			}
 
-            screen_draw_string(element.name, offset, (int) (index - scroll) * 12, color, color, color);
-        }
+			screen_draw_string(element.name, offset, (int) (index - scroll) * 12, color, color, color);
+		}
 
-        screen_end_draw();
+		screen_end_draw();
 
-        screen_begin_draw(TOP_SCREEN);
-        screen_clear(0, 0, 0);
+		screen_begin_draw(TOP_SCREEN);
+		screen_clear(0, 0, 0);
 
-        SelectableElement currSelected = elements.at(cursor);
-        if(currSelected.details.size() != 0) {
+		SelectableElement currSelected = elements.at(cursor);
+		if(currSelected.details.size() != 0) {
 			std::stringstream details;
-            for(std::vector<std::string>::iterator it = currSelected.details.begin(); it != currSelected.details.end(); it++) {
-                details << *it << "\n";
-            }
+			for(std::vector<std::string>::iterator it = currSelected.details.begin(); it != currSelected.details.end(); it++) {
+				details << *it << "\n";
+			}
 
 			screen_draw_string(details.str(), 0, 0, 255, 255, 255);
-        }
+		}
 
-        bool result = onLoop(elements, elementsDirty);
+		bool result = onLoop(elements, elementsDirty);
 		if(elementsDirty) {
 			cursor = 0;
 			scroll = 0;
@@ -112,27 +112,27 @@ bool ui_select(SelectableElement* selected, std::vector<SelectableElement> eleme
 			elementsDirty = false;
 		}
 
-        screen_end_draw();
-        screen_swap_buffers();
-        if(result) {
-            break;
-        }
-    }
+		screen_end_draw();
+		screen_swap_buffers();
+		if(result) {
+			break;
+		}
+	}
 
 	return false;
 }
 
 bool ui_is_directory(const std::string path) {
-    DIR *dir = opendir(path.c_str());
-    if(!dir) {
-        return false;
-    }
+	DIR *dir = opendir(path.c_str());
+	if(!dir) {
+		return false;
+	}
 
-    closedir(dir);
-    return true;
+	closedir(dir);
+	return true;
 }
 
-void ui_get_dir_contents(std::vector<SelectableElement>& elements, const std::string directory, std::vector<std::string> extensions) {
+void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::string directory, std::vector<std::string> extensions) {
 	elements.clear();
 	elements.push_back({".", "."});
 	elements.push_back({"..", ".."});
@@ -170,16 +170,16 @@ void ui_get_dir_contents(std::vector<SelectableElement>& elements, const std::st
 	closedir(dir);
 }
 
-bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop) {
-    std::stack<std::string> directoryStack;
-    std::string currDirectory = rootDirectory;
+bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop) {
+	std::stack<std::string> directoryStack;
+	std::string currDirectory = rootDirectory;
 
 	std::vector<SelectableElement> elements;
 	ui_get_dir_contents(elements, currDirectory, extensions);
 
 	bool changeDirectory = false;
 	SelectableElement selected;
-	bool result = ui_select(&selected, elements, [&] (std::vector<SelectableElement>& currElements, bool& elementsDirty) {
+	bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
 		if(onLoop()) {
 			return true;
 		}
@@ -197,7 +197,7 @@ bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, 
 		}
 
 		return false;
-	}, [&] (SelectableElement select) {
+	}, [&](SelectableElement select) {
 		if(select.name.compare(".") == 0) {
 			return false;
 		} else if(select.name.compare("..") == 0) {
@@ -222,52 +222,52 @@ bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, 
 		*selectedFile = selected.id;
 	}
 
-    return result;
+	return result;
 }
 
-bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop) {
-    std::vector<App> apps = app_list(mediaType);
-    std::vector<SelectableElement> elements;
-    for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
-        App app = *it;
+bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> onLoop) {
+	std::vector<App> apps = app_list(mediaType);
+	std::vector<SelectableElement> elements;
+	for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
+		App app = *it;
 
-        std::stringstream titleId;
-        titleId << std::setfill('0') << std::setw(16) << std::hex << app.titleId;
+		std::stringstream titleId;
+		titleId << std::setfill('0') << std::setw(16) << std::hex << app.titleId;
 
-        std::stringstream uniqueId;
-        uniqueId << std::setfill('0') << std::setw(8) << std::hex << app.uniqueId;
+		std::stringstream uniqueId;
+		uniqueId << std::setfill('0') << std::setw(8) << std::hex << app.uniqueId;
 
-        std::vector<std::string> details;
-        details.push_back("Title ID: " + titleId.str());
-        details.push_back("Unique ID: " + uniqueId.str());
-        details.push_back("Product Code: " + std::string(app.productCode));
-        details.push_back("Platform: " + app_get_platform_name(app.platform));
-        details.push_back("Category: " + app_get_category_name(app.category));
+		std::vector<std::string> details;
+		details.push_back("Title ID: " + titleId.str());
+		details.push_back("Unique ID: " + uniqueId.str());
+		details.push_back("Product Code: " + std::string(app.productCode));
+		details.push_back("Platform: " + app_get_platform_name(app.platform));
+		details.push_back("Category: " + app_get_category_name(app.category));
 
-        elements.push_back({titleId.str(), app.productCode, details});
-    }
+		elements.push_back({titleId.str(), app.productCode, details});
+	}
 
-    if(elements.size() == 0) {
-        elements.push_back({"None", "None"});
-    }
+	if(elements.size() == 0) {
+		elements.push_back({"None", "None"});
+	}
 
-    SelectableElement selected;
-    bool result = ui_select(&selected, elements, [&] (std::vector<SelectableElement>& currElements, bool& elementsDirty) {
+	SelectableElement selected;
+	bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
 		return onLoop();
-	}, [&] (SelectableElement select) {
+	}, [&](SelectableElement select) {
 		return select.name.compare("None") != 0;
 	});
 
-    if(result) {
-        for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
-            App app = *it;
-            if(app.titleId == (u64) strtoll(selected.id.c_str(), NULL, 16)) {
-                *selectedApp = app;
-            }
-        }
-    }
+	if(result) {
+		for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
+			App app = *it;
+			if(app.titleId == (u64) strtoll(selected.id.c_str(), NULL, 16)) {
+				*selectedApp = app;
+			}
+		}
+	}
 
-    return result;
+	return result;
 }
 
 void ui_display_message(const std::string message) {
