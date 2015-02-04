@@ -198,7 +198,7 @@ int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::functio
     }
 
     if(cancelled) {
-        return -1;
+        return -2;
     }
 
     if(onProgress != NULL) {
