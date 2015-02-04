@@ -62,7 +62,7 @@ const std::string app_get_platform_name(AppPlatform platform);
 const std::string app_get_category_name(AppCategory category);
 std::vector<App> app_list(MediaType mediaType);
 int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
-int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::function<bool(int progress)> onProgress);
+int app_install_socket(MediaType mediaType, int socket, u64 size, std::function<bool(int progress)> onProgress);
 int app_delete(App app);
 int app_launch(App app);
 

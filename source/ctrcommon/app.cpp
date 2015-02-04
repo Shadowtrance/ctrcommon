@@ -139,22 +139,6 @@ std::vector<App> app_list(MediaType mediaType) {
     return titles;
 }
 
-int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
-    FILE *fd = fopen(path.c_str(), "r");
-    if(!fd) {
-        return -1;
-    }
-
-    fseek(fd, 0, SEEK_END);
-    u64 size = (u64) ftell(fd);
-    fseek(fd, 0, SEEK_SET);
-
-    int ret = app_install(mediaType, fileno(fd), false, size, onProgress);
-
-    fclose(fd);
-    return ret;
-}
-
 int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::function<bool(int progress)> onProgress) {
     if(!am_prepare()) {
         return -1;
@@ -192,13 +176,13 @@ int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::functio
 
     free(buf);
 
+    if(cancelled) {
+        return -2;
+    }
+
     if(size != 0 && pos != size) {
         AM_CancelCIAInstall(&ciaHandle);
         return -1;
-    }
-
-    if(cancelled) {
-        return -2;
     }
 
     if(onProgress != NULL) {
@@ -211,6 +195,26 @@ int app_install(MediaType mediaType, int fd, bool socket, u64 size, std::functio
     }
 
     return 0;
+}
+
+int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
+    FILE *fd = fopen(path.c_str(), "r");
+    if(!fd) {
+        return -1;
+    }
+
+    fseek(fd, 0, SEEK_END);
+    u64 size = (u64) ftell(fd);
+    fseek(fd, 0, SEEK_SET);
+
+    int ret = app_install(mediaType, fileno(fd), false, size, onProgress);
+
+    fclose(fd);
+    return ret;
+}
+
+int app_install_socket(MediaType mediaType, int socket, u64 size, std::function<bool(int progress)> onProgress) {
+    return app_install(mediaType, socket, true, size, onProgress);
 }
 
 int app_delete(App app) {
