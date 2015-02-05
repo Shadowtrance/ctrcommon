@@ -1,12 +1,12 @@
 #include "ctrcommon/common.hpp"
 
 #include <arpa/inet.h>
-#include <sys/errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <malloc.h>
 
 #include <3ds.h>
+#include <stdio.h>
 
 static bool socInit;
 static void *socBuffer;
@@ -69,7 +69,6 @@ int socket_listen(u16 port) {
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd < 0) {
-        errno = SOC_GetErrno();
         return -1;
     }
 
@@ -80,63 +79,46 @@ int socket_listen(u16 port) {
     address.sin_port = htons(port);
 
     if(bind(fd, (struct sockaddr *) &address, sizeof(address)) != 0) {
-        errno = SOC_GetErrno();
         return -1;
     }
 
     int flags = fcntl(fd, F_GETFL);
     if(flags == -1) {
-        errno = SOC_GetErrno();
         return -1;
     }
 
     if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
-        errno = SOC_GetErrno();
         return -1;
     }
 
     if(listen(fd, 10) != 0) {
-        errno = SOC_GetErrno();
         return -1;
     }
 
     return fd;
 }
 
-int socket_accept(int fd) {
+FILE* socket_accept(int listeningSocket) {
     if(!sockets_init()) {
-        return -1;
+        return NULL;
     }
 
-    int afd = accept(fd, (struct sockaddr *) NULL, NULL);
+    int afd = accept(listeningSocket, (struct sockaddr *) NULL, NULL);
     if(afd < 0) {
-        errno = SOC_GetErrno();
-        return -1;
+        return NULL;
     }
 
-    int flags = fcntl(afd, F_GETFL);
-    if(flags == -1) {
-        errno = SOC_GetErrno();
-        return -1;
-    }
-
-    if(fcntl(afd, F_SETFL, flags | O_NONBLOCK) != 0) {
-        errno = SOC_GetErrno();
-        return -1;
-    }
-
-    return afd;
+    return fdopen(afd, "rw");
 }
 
-int socket_connect(const std::string ipAddress, u16 port) {
+FILE* socket_connect(const std::string ipAddress, u16 port) {
     if(!sockets_init()) {
-        return -1;
+        return NULL;
     }
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd < 0) {
-        errno = SOC_GetErrno();
-        return -1;
+        return NULL;
     }
 
     struct sockaddr_in address;
@@ -145,86 +127,12 @@ int socket_connect(const std::string ipAddress, u16 port) {
     address.sin_port = htons(port);
 
     if(inet_aton(ipAddress.c_str(), &address.sin_addr) <= 0) {
-        return -1;
+        return NULL;
     }
 
     if(connect(fd, (struct sockaddr *) &address, sizeof(address)) < 0) {
-        errno = SOC_GetErrno();
-        return -1;
+        return NULL;
     }
 
-    int flags = fcntl(fd, F_GETFL);
-    if(flags == -1) {
-        errno = SOC_GetErrno();
-        return -1;
-    }
-
-    if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
-        errno = SOC_GetErrno();
-        return -1;
-    }
-
-    return fd;
-}
-
-int socket_read(int fd, void *buffer, u32 bufferSize) {
-    if(!sockets_init()) {
-        return -1;
-    }
-
-    u8 *orig = (u8 *) buffer;
-    u8 *ptr = orig;
-    u32 currSize = bufferSize;
-    while(ptr != orig + bufferSize) {
-        int len = recv(fd, ptr, currSize, 0);
-        if(len < 0) {
-            if(platform_is_io_waiting()) {
-                continue;
-            }
-
-            errno = SOC_GetErrno();
-            return -1;
-        } else if(len == 0) {
-            break;
-        }
-
-        ptr += len;
-        currSize -= len;
-    }
-
-    return (int) (bufferSize - currSize);
-}
-
-int socket_write(int fd, void *buffer, u32 bufferSize) {
-    if(!sockets_init()) {
-        return -1;
-    }
-
-    u8 *orig = (u8 *) buffer;
-    u8 *ptr = orig;
-    u32 currSize = bufferSize;
-    while(ptr != orig + bufferSize) {
-        int len = send(fd, ptr, currSize, 0);
-        if(len < 0) {
-            if(platform_is_io_waiting()) {
-                continue;
-            }
-
-            errno = SOC_GetErrno();
-            return -1;
-        }
-
-        ptr += len;
-        currSize -= len;
-    }
-
-    return (int) (bufferSize - currSize);
-}
-
-void socket_close(int fd) {
-    if(!sockets_init()) {
-        return;
-    }
-
-    closesocket(fd);
+    return fdopen(fd, "rw");
 }

@@ -9,6 +9,8 @@
 #include <sstream>
 #include <iomanip>
 #include <arpa/inet.h>
+#include <sys/unistd.h>
+#include <stdio.h>
 
 struct ui_alphabetize {
     inline bool operator()(SelectableElement a, SelectableElement b) {
@@ -350,7 +352,7 @@ RemoteFile ui_accept_remote_file() {
         std::stringstream errStream;
         errStream << "Failed to initialize: Error " << errno;
         ui_prompt(errStream.str(), false);
-        return {-1, 0};
+        return {NULL, 0};
     }
 
     std::stringstream waitStream;
@@ -359,38 +361,38 @@ RemoteFile ui_accept_remote_file() {
     waitStream << "Press B to cancel." << "\n";
     ui_display_message(waitStream.str());
 
-    int socket;
-    while((socket = socket_accept(listen)) < 0) {
+    FILE* socket;
+    while((socket = socket_accept(listen)) == NULL) {
         if(!platform_is_io_waiting()) {
-            socket_close(listen);
+            close(listen);
 
             std::stringstream errStream;
             errStream << "Failed to accept peer: Error " << errno;
             ui_prompt(errStream.str(), false);
-            return {-1, 0};
+            return {NULL, 0};
         } else if(platform_is_running()) {
             input_poll();
             if(input_is_pressed(BUTTON_B)) {
-                socket_close(listen);
-                return {-1, 0};
+                close(listen);
+                return {NULL, 0};
             }
         } else {
-            return {-1, 0};
+            return {NULL, 0};
         }
     }
 
-    socket_close(listen);
+    close(listen);
 
     ui_display_message("Reading info...");
 
     u64 fileSize;
-    if(socket_read(socket, &fileSize, sizeof(fileSize)) < 0) {
-        socket_close(socket);
+    if(fread(&fileSize, sizeof(fileSize), 1, socket) == 0) {
+        fclose(socket);
 
         std::stringstream errStream;
         errStream << "Failed to read info: Error " << errno;
         ui_prompt(errStream.str(), false);
-        return {-1, 0};
+        return {NULL, 0};
     }
 
     fileSize = ntohll(fileSize);

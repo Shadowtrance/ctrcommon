@@ -62,7 +62,7 @@ const std::string app_get_platform_name(AppPlatform platform);
 const std::string app_get_category_name(AppCategory category);
 std::vector<App> app_list(MediaType mediaType);
 int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
-int app_install_socket(MediaType mediaType, int socket, u64 size, std::function<bool(int progress)> onProgress);
+int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress);
 int app_delete(App app);
 int app_launch(App app);
 
@@ -125,11 +125,8 @@ u64 htonll(u64 value);
 u64 ntohll(u64 value);
 u32 socket_get_host_ip();
 int socket_listen(u16 port);
-int socket_accept(int fd);
-int socket_connect(const std::string ipAddress, u16 port);
-int socket_read(int fd, void* buffer, u32 bufferSize);
-int socket_write(int fd, void* buffer, u32 bufferSize);
-void socket_close(int fd);
+FILE* socket_accept(int listeningSocket);
+FILE* socket_connect(const std::string ipAddress, u16 port);
 
 typedef struct {
 	std::string id;
@@ -138,7 +135,7 @@ typedef struct {
 } SelectableElement;
 
 typedef struct {
-	int socket;
+	FILE* fd;
 	u64 fileSize;
 } RemoteFile;
 
