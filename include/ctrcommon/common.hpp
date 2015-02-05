@@ -58,6 +58,17 @@ typedef struct {
     AppCategory category;
 } App;
 
+#define APP_SUCCESS 0
+#define APP_AM_INIT_FAILED -1
+#define APP_OPERATION_CANCELLED -2
+#define APP_BEGIN_INSTALL_FAILED -3
+#define APP_IO_ERROR -4
+#define APP_FINALIZE_INSTALL_FAILED -5
+#define APP_OPEN_FILE_FAILED -6
+#define APP_DELETE_FAILED -7
+#define APP_LAUNCH_FAILED -8
+
+const std::string app_get_result_string(int result);
 const std::string app_get_platform_name(AppPlatform platform);
 const std::string app_get_category_name(AppCategory category);
 std::vector<App> app_list(MediaType mediaType);
