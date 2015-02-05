@@ -1,5 +1,6 @@
 #include "ctrcommon/common.hpp"
 
+#include <sys/errno.h>
 #include <sys/unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -142,7 +143,7 @@ std::vector<App> app_list(MediaType mediaType) {
 int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
     FILE *fd = fopen(path.c_str(), "r");
     if(!fd) {
-        return -1;
+        return -4;
     }
 
     fseek(fd, 0, SEEK_END);
@@ -173,6 +174,7 @@ int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int 
     u32 bufSize = 1024 * 16; // 16KB
     void *buf = malloc(bufSize);
     bool cancelled = false;
+    bool eof = false;
     u64 pos = 0;
     while(platform_is_running()) {
         if(onProgress != NULL && !onProgress(size != 0 ? (int) ((pos / (float) size) * 100) : 0)) {
@@ -183,6 +185,7 @@ int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int 
 
         u64 bytesRead = fread(buf, 1, bufSize, fd);
         if(bytesRead == 0) {
+            eof = true;
             break;
         }
 
@@ -198,7 +201,11 @@ int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int 
 
     if(size != 0 && pos != size) {
         AM_CancelCIAInstall(&ciaHandle);
-        return -1;
+        if(eof && errno != 0) {
+            return errno;
+        }
+
+        return -3;
     }
 
     if(onProgress != NULL) {
