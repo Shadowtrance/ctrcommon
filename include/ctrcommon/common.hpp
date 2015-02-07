@@ -78,6 +78,8 @@ int app_delete(App app);
 int app_launch(App app);
 
 u64 fs_get_free_space(MediaType mediaType);
+bool fs_exists(const std::string path);
+void fs_delete(const std::string path);
 
 typedef enum {
     BUTTON_A,
@@ -126,10 +128,13 @@ u16 screen_get_height();
 bool screen_read_pixels(u8* dest, int srcX, int srcY, int dstX, int dstY, u16 width, u16 height);
 bool screen_take_screenshot();
 bool screen_draw(int x, int y, u8 r, u8 g, u8 b);
+bool screen_draw_packed(int x, int y, u32 color);
 bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b);
 bool screen_clear(u8 r, u8 g, u8 b);
+void screen_clear_all();
 u16 screen_get_str_width(const std::string str);
 u16 screen_get_str_height(const std::string str);
+bool screen_draw_char(char c, int x, int y, u8 r, u8 g, u8 b);
 bool screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b);
 
 u64 htonll(u64 value);

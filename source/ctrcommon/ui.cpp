@@ -104,7 +104,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             screen_draw_string(details.str(), 0, 0, 255, 255, 255);
         }
 
-        bool result = onLoop(elements, elementsDirty);
+        bool result = onLoop != NULL && onLoop(elements, elementsDirty);
         if(elementsDirty) {
             cursor = 0;
             scroll = 0;
@@ -182,7 +182,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
     bool changeDirectory = false;
     SelectableElement selected;
     bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
-        if(onLoop()) {
+        if(onLoop != NULL && onLoop()) {
             return true;
         }
 
@@ -255,7 +255,7 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
 
     SelectableElement selected;
     bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
-        return onLoop();
+        return onLoop != NULL && onLoop();
     }, [&](SelectableElement select) {
         return select.name.compare("None") != 0;
     });

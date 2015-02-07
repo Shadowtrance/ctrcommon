@@ -187,7 +187,7 @@ u32 screen_get_index(int x, int y) {
     u16 height = screen_get_height();
     // Reverse the y coordinate when finding the index.
     // This is done as the framebuffer is rotated 90 degrees to the left.
-    return (u32) (((height - y) + x * height) * 3);
+    return (u32) (((height - y - 1) + x * height) * 3);
 }
 
 bool screen_read_pixels(u8 *dest, int srcX, int srcY, int dstX, int dstY, u16 width, u16 height) {
@@ -283,6 +283,17 @@ bool screen_draw(int x, int y, u8 r, u8 g, u8 b) {
     return true;
 }
 
+bool screen_draw_packed(int x, int y, u32 color) {
+    if(fb == NULL || x < 0 || y < 0 || x >= screen_get_width() || y >= screen_get_height()) {
+        return false;
+    }
+
+    u32 idx = screen_get_index(x, y);
+    *((u16*) (fb + idx)) = (u16) color;
+    *(fb + idx + 2) = (u8) (color >> 16);
+    return true;
+}
+
 bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
     if(fb == NULL) {
         return false;
@@ -329,7 +340,30 @@ bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
 }
 
 bool screen_clear(u8 r, u8 g, u8 b) {
-    return screen_fill(0, 0, screen_get_width(), screen_get_height(), r, g, b);
+    if(fb == NULL) {
+        return false;
+    }
+
+    if(r == g && r == b) {
+        memset(fb, r, (size_t) (fbWidth * fbHeight * 3));
+        return true;
+    } else {
+        return screen_fill(0, 0, screen_get_width(), screen_get_height(), r, g, b);
+    }
+}
+
+void screen_clear_all() {
+    for(int buffer = 0; buffer < 2; buffer++) {
+        screen_begin_draw(TOP_SCREEN);
+        screen_clear(0, 0, 0);
+        screen_end_draw();
+
+        screen_begin_draw(BOTTOM_SCREEN);
+        screen_clear(0, 0, 0);
+        screen_end_draw();
+
+        screen_swap_buffers();
+    }
 }
 
 u16 screen_get_str_width(const std::string str) {
