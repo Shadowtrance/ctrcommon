@@ -1,5 +1,5 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#ifndef __CTRCOMMON_COMMON_H__
+#define __CTRCOMMON_COMMON_H__
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -19,7 +19,11 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
+#ifdef _3DS
+#include <3ds/types.h>
+#elif !defined(BIT)
 #define BIT(n) (1U << (n))
+#endif
 
 bool platform_init();
 void platform_cleanup();
