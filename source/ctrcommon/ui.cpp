@@ -31,7 +31,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
         input_poll();
         if(input_is_pressed(BUTTON_A)) {
             SelectableElement select = elements.at(cursor);
-            if(onSelect(select)) {
+            if(onSelect == NULL || onSelect(select)) {
                 *selected = select;
                 return true;
             }
@@ -172,7 +172,7 @@ void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::st
     closedir(dir);
 }
 
-bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop) {
+bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool(bool inRoot)> onLoop) {
     std::stack<std::string> directoryStack;
     std::string currDirectory = rootDirectory;
 
@@ -182,7 +182,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
     bool changeDirectory = false;
     SelectableElement selected;
     bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
-        if(onLoop != NULL && onLoop()) {
+        if(onLoop != NULL && onLoop(directoryStack.empty())) {
             return true;
         }
 

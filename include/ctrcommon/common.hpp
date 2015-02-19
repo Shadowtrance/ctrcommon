@@ -122,7 +122,10 @@ typedef struct {
     int y;
 } Touch;
 
+const std::string input_get_button_name(Button button);
 void input_poll();
+bool input_is_any_pressed();
+Button input_get_any_pressed();
 bool input_is_released(Button button);
 bool input_is_pressed(Button button);
 bool input_is_held(Button button);
@@ -176,7 +179,7 @@ typedef struct {
 } RemoteFile;
 
 bool ui_select(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement>& currElements, bool& elementsDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect);
-bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool()> onLoop);
+bool ui_select_file(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool(bool inRoot)> onLoop);
 bool ui_select_app(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop);
 void ui_display_message(const std::string message);
 bool ui_prompt(const std::string message, bool question);
