@@ -19,12 +19,6 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
-#ifdef _3DS
-#include <3ds/types.h>
-#elif !defined(BIT)
-#define BIT(n) (1U << (n))
-#endif
-
 bool platform_init();
 void platform_cleanup();
 bool platform_is_running();
@@ -87,6 +81,10 @@ u64 fs_get_free_space(MediaType mediaType);
 bool fs_exists(const std::string path);
 void fs_delete(const std::string path);
 
+#ifndef BIT
+#define BIT(n) (1U << (n))
+#define BIT_SELF_DEFINED
+#endif
 typedef enum {
     BUTTON_A = BIT(0),
     BUTTON_B = BIT(1),
@@ -116,6 +114,10 @@ typedef enum {
     BUTTON_LEFT = BUTTON_DLEFT | BUTTON_CPAD_LEFT,
     BUTTON_RIGHT = BUTTON_DRIGHT | BUTTON_CPAD_RIGHT,
 } Button;
+#ifdef BIT_SELF_DEFINED
+#undef BIT
+#undef BIT_SELF_DEFINED
+#endif
 
 typedef struct {
     int x;
@@ -166,6 +168,20 @@ u32 socket_get_host_ip();
 int socket_listen(u16 port);
 FILE* socket_accept(int listeningSocket);
 FILE* socket_connect(const std::string ipAddress, u16 port);
+
+typedef enum {
+    CHANNEL_LEFT = 8,
+    CHANNEL_RIGHT = 9
+} SoundChannel;
+
+typedef enum {
+    PCM8 = 0,
+    PCM16 = 4096
+} SoundFormat;
+
+void* sound_alloc(u32 size);
+void sound_free(void* mem);
+bool sound_play(SoundChannel channel, SoundFormat format, u32 sampleRate, void* samples, u32 numSamples);
 
 typedef struct {
 	std::string id;

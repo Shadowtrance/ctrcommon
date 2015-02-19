@@ -7,8 +7,8 @@
 #include <3ds.h>
 
 extern void apps_cleanup();
-
 extern void sockets_cleanup();
+extern void sound_cleanup();
 
 bool platform_init() {
     if(srvInit() != 0 || aptInit() != 0 || hidInit(NULL) != 0 || fsInit() != 0 || sdmcInit() != 0) {
@@ -22,6 +22,7 @@ bool platform_init() {
 void platform_cleanup() {
     apps_cleanup();
     sockets_cleanup();
+    sound_cleanup();
 
     sdmcExit();
     fsExit();

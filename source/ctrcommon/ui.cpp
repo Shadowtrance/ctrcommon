@@ -41,7 +41,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
         }
 
         if(input_is_held(BUTTON_DOWN) || input_is_held(BUTTON_UP)) {
-            if(lastScrollTime == 0 || platform_get_time() - lastScrollTime >= 125) {
+            if(lastScrollTime == 0 || platform_get_time() - lastScrollTime >= 180) {
                 if(input_is_held(BUTTON_DOWN) && cursor < elements.size() - 1) {
                     cursor++;
                     if(cursor >= scroll + 20) {
