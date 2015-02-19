@@ -25,6 +25,8 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
     u32 selectionScroll = 0;
     u64 selectionScrollEndTime = 0;
 
+    u64 lastScrollTime = 0;
+
     bool elementsDirty = false;
     bool resetCursorIfDirty = true;
     std::sort(elements.begin(), elements.end(), ui_alphabetize());
@@ -38,24 +40,34 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             }
         }
 
-        if(input_is_pressed(BUTTON_DOWN) && cursor < elements.size() - 1) {
-            cursor++;
-            if(cursor >= scroll + 20) {
-                scroll++;
+        if(input_is_held(BUTTON_DOWN) || input_is_held(BUTTON_UP)) {
+            if(lastScrollTime == 0 || platform_get_time() - lastScrollTime >= 125) {
+                if(input_is_held(BUTTON_DOWN) && cursor < elements.size() - 1) {
+                    cursor++;
+                    if(cursor >= scroll + 20) {
+                        scroll++;
+                    }
+
+                    selectionScroll = 0;
+                    selectionScrollEndTime = 0;
+
+                    lastScrollTime = platform_get_time();
+                }
+
+                if(input_is_held(BUTTON_UP) && cursor > 0) {
+                    cursor--;
+                    if(cursor < scroll) {
+                        scroll--;
+                    }
+
+                    selectionScroll = 0;
+                    selectionScrollEndTime = 0;
+
+                    lastScrollTime = platform_get_time();
+                }
             }
-
-            selectionScroll = 0;
-            selectionScrollEndTime = 0;
-        }
-
-        if(input_is_pressed(BUTTON_UP) && cursor > 0) {
-            cursor--;
-            if(cursor < scroll) {
-                scroll--;
-            }
-
-            selectionScroll = 0;
-            selectionScrollEndTime = 0;
+        } else {
+            lastScrollTime = 0;
         }
 
         screen_begin_draw(BOTTOM_SCREEN);
