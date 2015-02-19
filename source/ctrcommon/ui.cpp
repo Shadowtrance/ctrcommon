@@ -18,7 +18,7 @@ struct ui_alphabetize {
     }
 };
 
-bool ui_select(SelectableElement *selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty)> onLoop, std::function<bool(SelectableElement)> onSelect) {
+bool ui_select(SelectableElement *selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect, bool useTopScreen) {
     u32 cursor = 0;
     u32 scroll = 0;
 
@@ -26,6 +26,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
     u64 selectionScrollEndTime = 0;
 
     bool elementsDirty = false;
+    bool resetCursorIfDirty = true;
     std::sort(elements.begin(), elements.end(), ui_alphabetize());
     while(platform_is_running()) {
         input_poll();
@@ -91,30 +92,39 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
 
         screen_end_draw();
 
-        screen_begin_draw(TOP_SCREEN);
-        screen_clear(0, 0, 0);
+        if(useTopScreen) {
+            screen_begin_draw(TOP_SCREEN);
+            screen_clear(0, 0, 0);
 
-        SelectableElement currSelected = elements.at(cursor);
-        if(currSelected.details.size() != 0) {
-            std::stringstream details;
-            for(std::vector<std::string>::iterator it = currSelected.details.begin(); it != currSelected.details.end(); it++) {
-                details << *it << "\n";
+            SelectableElement currSelected = elements.at(cursor);
+            if(currSelected.details.size() != 0) {
+                std::stringstream details;
+                for(std::vector<std::string>::iterator it = currSelected.details.begin(); it != currSelected.details.end(); it++) {
+                    details << *it << "\n";
+                }
+
+                screen_draw_string(details.str(), 0, 0, 255, 255, 255);
             }
-
-            screen_draw_string(details.str(), 0, 0, 255, 255, 255);
         }
 
-        bool result = onLoop != NULL && onLoop(elements, elementsDirty);
+        bool result = onLoop != NULL && onLoop(elements, elementsDirty, resetCursorIfDirty);
         if(elementsDirty) {
-            cursor = 0;
-            scroll = 0;
+            if(resetCursorIfDirty) {
+                cursor = 0;
+                scroll = 0;
+            }
+
             selectionScroll = 0;
             selectionScrollEndTime = 0;
             std::sort(elements.begin(), elements.end(), ui_alphabetize());
             elementsDirty = false;
+            resetCursorIfDirty = true;
         }
 
-        screen_end_draw();
+        if(useTopScreen) {
+            screen_end_draw();
+        }
+
         screen_swap_buffers();
         if(result) {
             break;
@@ -172,7 +182,7 @@ void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::st
     closedir(dir);
 }
 
-bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool(bool inRoot)> onLoop) {
+bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool(bool inRoot)> onLoop, bool useTopScreen) {
     std::stack<std::string> directoryStack;
     std::string currDirectory = rootDirectory;
 
@@ -181,7 +191,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
 
     bool changeDirectory = false;
     SelectableElement selected;
-    bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
+    bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty) {
         if(onLoop != NULL && onLoop(directoryStack.empty())) {
             return true;
         }
@@ -218,7 +228,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
         }
 
         return true;
-    });
+    }, useTopScreen);
 
     if(result) {
         *selectedFile = selected.id;
@@ -227,7 +237,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
     return result;
 }
 
-bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> onLoop) {
+bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> onLoop, bool useTopScreen) {
     std::vector<App> apps = app_list(mediaType);
     std::vector<SelectableElement> elements;
     for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
@@ -254,11 +264,11 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
     }
 
     SelectableElement selected;
-    bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty) {
+    bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty) {
         return onLoop != NULL && onLoop();
     }, [&](SelectableElement select) {
         return select.name.compare("None") != 0;
-    });
+    }, useTopScreen);
 
     if(result) {
         for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
@@ -272,15 +282,15 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
     return result;
 }
 
-void ui_display_message(const std::string message) {
-    screen_begin_draw(TOP_SCREEN);
+void ui_display_message(Screen screen, const std::string message) {
+    screen_begin_draw(screen);
     screen_clear(0, 0, 0);
     screen_draw_string(message, (screen_get_width() - screen_get_str_width(message)) / 2, (screen_get_height() - screen_get_str_height(message)) / 2, 255, 255, 255);
     screen_end_draw();
     screen_swap_buffers();
 }
 
-bool ui_prompt(const std::string message, bool question) {
+bool ui_prompt(Screen screen, const std::string message, bool question) {
     std::stringstream stream;
     stream << message << "\n";
     if(question) {
@@ -306,13 +316,13 @@ bool ui_prompt(const std::string message, bool question) {
             }
         }
 
-        ui_display_message(str);
+        ui_display_message(screen, str);
     }
 
     return false;
 }
 
-void ui_display_progress(const std::string operation, const std::string details, bool quickSwap, int progress) {
+void ui_display_progress(Screen screen, const std::string operation, const std::string details, bool quickSwap, int progress) {
     std::stringstream stream;
     stream << operation << ": [";
     int progressBars = progress / 4;
@@ -333,7 +343,7 @@ void ui_display_progress(const std::string operation, const std::string details,
 
     std::string str = stream.str();
 
-    screen_begin_draw(TOP_SCREEN);
+    screen_begin_draw(screen);
     screen_clear(0, 0, 0);
     screen_draw_string(str, (screen_get_width() - screen_get_str_width(str)) / 2, (screen_get_height() - screen_get_str_height(str)) / 2, 255, 255, 255);
     screen_end_draw();
@@ -344,14 +354,14 @@ void ui_display_progress(const std::string operation, const std::string details,
     }
 }
 
-RemoteFile ui_accept_remote_file() {
-    ui_display_message("Initializing...");
+RemoteFile ui_accept_remote_file(Screen screen) {
+    ui_display_message(screen, "Initializing...");
 
     int listen = socket_listen(5000);
     if(listen < 0) {
         std::stringstream errStream;
         errStream << "Failed to initialize: Error " << errno;
-        ui_prompt(errStream.str(), false);
+        ui_prompt(screen, errStream.str(), false);
         return {NULL, 0};
     }
 
@@ -359,7 +369,7 @@ RemoteFile ui_accept_remote_file() {
     waitStream << "Waiting for peer to connect..." << "\n";
     waitStream << "IP: " << inet_ntoa({socket_get_host_ip()}) << "\n";
     waitStream << "Press B to cancel." << "\n";
-    ui_display_message(waitStream.str());
+    ui_display_message(screen, waitStream.str());
 
     FILE* socket;
     while((socket = socket_accept(listen)) == NULL) {
@@ -368,7 +378,7 @@ RemoteFile ui_accept_remote_file() {
 
             std::stringstream errStream;
             errStream << "Failed to accept peer: Error " << errno;
-            ui_prompt(errStream.str(), false);
+            ui_prompt(screen, errStream.str(), false);
             return {NULL, 0};
         } else if(platform_is_running()) {
             input_poll();
@@ -383,7 +393,7 @@ RemoteFile ui_accept_remote_file() {
 
     close(listen);
 
-    ui_display_message("Reading info...");
+    ui_display_message(screen, "Reading info...");
 
     u64 fileSize;
     if(fread(&fileSize, sizeof(fileSize), 1, socket) == 0) {
@@ -391,7 +401,7 @@ RemoteFile ui_accept_remote_file() {
 
         std::stringstream errStream;
         errStream << "Failed to read info: Error " << errno;
-        ui_prompt(errStream.str(), false);
+        ui_prompt(screen, errStream.str(), false);
         return {NULL, 0};
     }
 
