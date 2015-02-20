@@ -330,9 +330,49 @@ bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
         colorLine[ly * 3 + 2] = r;
     }
 
-    u8 *fbAddr = fb + screen_get_index(x, y) - (height * 3);
+    u8 *fbAddr = fb + screen_get_index(x, y) - ((height - 1) * 3);
     for(int dx = 0; dx < width; dx++) {
         memcpy(fbAddr, colorLine, (size_t) (height * 3));
+        fbAddr += sheight * 3;
+    }
+
+    return true;
+}
+
+bool screen_copy(int x, int y, u16 width, u16 height, u8* pixels) {
+    if(fb == NULL) {
+        return false;
+    }
+
+    u16 swidth = screen_get_width();
+    u16 sheight = screen_get_height();
+    if(x + width < 0 || y + height < 0 || x >= swidth || y >= sheight) {
+        return false;
+    }
+
+    if(x < 0) {
+        width += x;
+        x = 0;
+    }
+
+    if(y < 0) {
+        height += y;
+        y = 0;
+    }
+
+    if(x + width >= swidth) {
+        width = (u16) (swidth - x);
+    }
+
+    if(y + height >= sheight) {
+        height = (u16) (sheight - y);
+    }
+
+    u8* colorLine = pixels;
+    u8* fbAddr = fb + screen_get_index(x, y) - ((height - 1) * 3);
+    for(int dx = 0; dx < width; dx++) {
+        memcpy(fbAddr, colorLine, (size_t) (height * 3));
+        colorLine += height * 3;
         fbAddr += sheight * 3;
     }
 

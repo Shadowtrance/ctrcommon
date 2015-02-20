@@ -155,6 +155,7 @@ bool screen_take_screenshot();
 bool screen_draw(int x, int y, u8 r, u8 g, u8 b);
 bool screen_draw_packed(int x, int y, u32 color);
 bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b);
+bool screen_copy(int x, int y, u16 width, u16 height, u8* pixels);
 bool screen_clear(u8 r, u8 g, u8 b);
 void screen_clear_all();
 u16 screen_get_str_width(const std::string str);

@@ -81,7 +81,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             int offset = 0;
             if(index == cursor) {
                 color = 0;
-                screen_fill(0, (int) (index - scroll) * 12, screenWidth, screen_get_str_height(element.name), 255, 255, 255);
+                screen_fill(0, (int) (index - scroll) * 12 - 2, screenWidth, screen_get_str_height(element.name) + 4, 255, 255, 255);
                 u32 width = (u32) screen_get_str_width(element.name);
                 if(width > screenWidth) {
                     if(selectionScroll + screenWidth >= width) {
