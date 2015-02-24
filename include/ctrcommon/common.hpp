@@ -1,5 +1,5 @@
-#ifndef __CTRCOMMON_COMMON_H__
-#define __CTRCOMMON_COMMON_H__
+#ifndef __CTRCOMMON_COMMON_HPP__
+#define __CTRCOMMON_COMMON_HPP__
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -22,6 +22,7 @@ typedef int64_t s64;
 bool platform_init();
 void platform_cleanup();
 bool platform_is_running();
+u32 platform_get_device_id();
 u64 platform_get_time();
 void platform_delay(int ms);
 void platform_printf(const char* format, ...);

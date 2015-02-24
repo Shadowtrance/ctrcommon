@@ -1,39 +1,33 @@
 #include "ctrcommon/common.hpp"
+#include "service.hpp"
 
-#include <sys/errno.h>
 #include <stdio.h>
-#include <string.h>
 
 #include <3ds.h>
 
-extern void apps_cleanup();
-extern void sockets_cleanup();
-extern void sound_cleanup();
-
 bool platform_init() {
-    if(srvInit() != 0 || aptInit() != 0 || hidInit(NULL) != 0 || fsInit() != 0 || sdmcInit() != 0) {
-        return false;
-    }
-
-    gfxInitDefault();
-    return true;
+    return serviceInit() && serviceRequire("fs");
 }
 
 void platform_cleanup() {
-    apps_cleanup();
-    sockets_cleanup();
-    sound_cleanup();
-
-    sdmcExit();
-    fsExit();
-    gfxExit();
-    hidExit();
-    aptExit();
-    srvExit();
+    serviceCleanup();
 }
 
 bool platform_is_running() {
     return aptMainLoop();
+}
+
+u32 platform_get_device_id() {
+    if(!serviceRequire("am")) {
+        return 0;
+    }
+
+    u32 deviceId;
+    if(AM_GetDeviceId(&deviceId) != 0) {
+        return 0;
+    }
+    
+    return deviceId;
 }
 
 u64 platform_get_time() {
@@ -45,17 +39,12 @@ void platform_delay(int ms) {
 }
 
 void platform_printf(const char *format, ...) {
+    if(!serviceRequire("console")) {
+        return;
+    }
+
     va_list args;
     va_start(args, format);
-    int len = vsnprintf(NULL, 0, format, args);
+    vfprintf(stderr, format, args);
     va_end(args);
-
-    char str[len + 1];
-
-    va_list args2;
-    va_start(args2, format);
-    vsnprintf(str, (size_t) len + 1, format, args2);
-    va_end(args2);
-
-    svcOutputDebugString(str, strlen(str));
 }

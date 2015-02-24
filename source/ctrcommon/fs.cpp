@@ -1,5 +1,7 @@
 #include "ctrcommon/common.hpp"
+#include "service.hpp"
 
+#include <sys/dirent.h>
 #include <sys/syslimits.h>
 #include <sys/unistd.h>
 #include <stdio.h>
@@ -7,7 +9,6 @@
 #include <sstream>
 
 #include <3ds.h>
-#include <sys/dirent.h>
 
 static FS_archive sdmcArchive = {ARCH_SDMC, {PATH_EMPTY, 1, (u8*) ""}};
 
@@ -35,6 +36,10 @@ const std::string fs_fix_path(const std::string path) {
 }
 
 u64 fs_get_free_space(MediaType mediaType) {
+    if(!serviceRequire("fs")) {
+        return 0;
+    }
+
     u32 clusterSize;
     u32 freeClusters;
     Result res = 0;

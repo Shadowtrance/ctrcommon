@@ -1,4 +1,5 @@
 #include "ctrcommon/common.hpp"
+#include "service.hpp"
 
 #include <sys/errno.h>
 #include <sys/unistd.h>
@@ -10,37 +11,6 @@
 #include <sstream>
 
 #include <3ds.h>
-
-static bool amInitialized = false;
-static bool nsInitialized = false;
-
-bool am_prepare() {
-    if(!amInitialized && amInit() == 0) {
-        amInitialized = true;
-    }
-
-    return amInitialized;
-}
-
-bool ns_prepare() {
-    if(!nsInitialized && nsInit() == 0) {
-        nsInitialized = true;
-    }
-
-    return nsInitialized;
-}
-
-void apps_cleanup() {
-    if(amInitialized) {
-        amExit();
-        amInitialized = false;
-    }
-
-    if(nsInitialized) {
-        nsExit();
-        nsInitialized = false;
-    }
-}
 
 u8 app_mediatype_to_byte(MediaType mediaType) {
     return mediaType == NAND ? mediatype_NAND : mediatype_SDMC;
@@ -138,7 +108,7 @@ const std::string app_get_category_name(AppCategory category) {
 
 std::vector<App> app_list(MediaType mediaType) {
     std::vector<App> titles;
-    if(!am_prepare()) {
+    if(!serviceRequire("am")) {
         return titles;
     }
 
@@ -174,6 +144,10 @@ std::vector<App> app_list(MediaType mediaType) {
 
 AppResult app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
     errno = 0;
+    if(!serviceRequire("am")) {
+        return APP_AM_INIT_FAILED;
+    }
+
     FILE *fd = fopen(path.c_str(), "r");
     if(!fd) {
         return APP_OPEN_FILE_FAILED;
@@ -191,7 +165,7 @@ AppResult app_install_file(MediaType mediaType, const std::string path, std::fun
 
 AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress) {
     errno = 0;
-    if(!am_prepare()) {
+    if(!serviceRequire("am")) {
         return APP_AM_INIT_FAILED;
     }
 
@@ -259,7 +233,7 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
 
 AppResult app_delete(App app) {
     errno = 0;
-    if(!am_prepare()) {
+    if(!serviceRequire("am")) {
         return APP_AM_INIT_FAILED;
     }
 
@@ -274,7 +248,7 @@ AppResult app_delete(App app) {
 
 AppResult app_launch(App app) {
     errno = 0;
-    if(!ns_prepare()) {
+    if(!serviceRequire("ns")) {
         return APP_AM_INIT_FAILED;
     }
 

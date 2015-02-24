@@ -6,6 +6,7 @@
 #include <3ds.h>
 
 #include "ctrcommon/common.hpp"
+#include "service.hpp"
 
 static unsigned char asciiData[128][8] = {
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
@@ -143,7 +144,7 @@ u16 fbWidth = 0;
 u16 fbHeight = 0;
 
 bool screen_begin_draw(Screen screen) {
-    if(fb != NULL) {
+    if(fb != NULL || !serviceRequire("gfx")) {
         return false;
     }
 
@@ -152,7 +153,7 @@ bool screen_begin_draw(Screen screen) {
 }
 
 bool screen_end_draw() {
-    if(fb == NULL) {
+    if(fb == NULL || !serviceRequire("gfx")) {
         return false;
     }
 
@@ -163,11 +164,19 @@ bool screen_end_draw() {
 }
 
 void screen_swap_buffers_quick() {
+    if(!serviceRequire("gfx")) {
+        return;
+    }
+
     gfxFlushBuffers();
     gfxSwapBuffers();
 }
 
 void screen_swap_buffers() {
+    if(!serviceRequire("gfx")) {
+        return;
+    }
+
     gfxFlushBuffers();
     gspWaitForVBlank();
     gfxSwapBuffers();

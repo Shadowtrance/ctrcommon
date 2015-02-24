@@ -1,16 +1,16 @@
 #include "ctrcommon/common.hpp"
 
+#include <arpa/inet.h>
 #include <sys/dirent.h>
 #include <sys/errno.h>
-#include <string.h>
-
-#include <stack>
-#include <algorithm>
-#include <sstream>
-#include <iomanip>
-#include <arpa/inet.h>
 #include <sys/unistd.h>
 #include <stdio.h>
+#include <string.h>
+
+#include <algorithm>
+#include <iomanip>
+#include <sstream>
+#include <stack>
 
 struct ui_alphabetize {
     inline bool operator()(SelectableElement a, SelectableElement b) {

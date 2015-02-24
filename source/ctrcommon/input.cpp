@@ -1,4 +1,5 @@
 #include "ctrcommon/common.hpp"
+#include "service.hpp"
 
 #include <3ds.h>
 
@@ -63,6 +64,10 @@ const std::string input_get_button_name(Button button) {
 }
 
 void input_poll() {
+    if(!serviceRequire("hid")) {
+        return;
+    }
+
     hidScanInput();
 }
 
@@ -87,18 +92,34 @@ Button input_get_any_pressed() {
 }
 
 bool input_is_released(Button button) {
+    if(!serviceRequire("hid")) {
+        return false;
+    }
+
     return (hidKeysUp() & button) != 0;
 }
 
 bool input_is_pressed(Button button) {
+    if(!serviceRequire("hid")) {
+        return false;
+    }
+
     return (hidKeysDown() & button) != 0;
 }
 
 bool input_is_held(Button button) {
+    if(!serviceRequire("hid")) {
+        return false;
+    }
+
     return (hidKeysHeld() & button) != 0;
 }
 
 Touch input_get_touch() {
+    if(!serviceRequire("hid")) {
+        return {0, 0};
+    }
+
     touchPosition pos;
     hidTouchRead(&pos);
     return {pos.px, pos.py};

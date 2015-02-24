@@ -1,45 +1,12 @@
 #include "ctrcommon/common.hpp"
+#include "service.hpp"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <string.h>
-#include <malloc.h>
 
 #include <3ds.h>
 #include <stdio.h>
-
-static bool socInit;
-static void *socBuffer;
-
-bool sockets_init() {
-    if(!socInit) {
-        socBuffer = memalign(0x1000, 0x100000);
-        if(socBuffer == NULL) {
-            return false;
-        }
-
-        if(SOC_Initialize((u32 *) socBuffer, 0x100000) != 0) {
-            free(socBuffer);
-            socBuffer = NULL;
-            return false;
-        }
-
-        socInit = true;
-    }
-
-    return socInit;
-}
-
-void sockets_cleanup() {
-    if(!socInit) {
-        return;
-    }
-
-    socInit = false;
-    free(socBuffer);
-    socBuffer = NULL;
-    SOC_Shutdown();
-}
 
 u64 htonll(u64 value) {
     static const int num = 42;
@@ -55,7 +22,7 @@ u64 ntohll(u64 value) {
 }
 
 u32 socket_get_host_ip() {
-    if(!sockets_init()) {
+    if(!serviceRequire("soc")) {
         return 0;
     }
 
@@ -63,7 +30,7 @@ u32 socket_get_host_ip() {
 }
 
 int socket_listen(u16 port) {
-    if(!sockets_init()) {
+    if(!serviceRequire("soc")) {
         return -1;
     }
 
@@ -99,7 +66,7 @@ int socket_listen(u16 port) {
 }
 
 FILE* socket_accept(int listeningSocket) {
-    if(!sockets_init()) {
+    if(!serviceRequire("soc")) {
         return NULL;
     }
 
@@ -121,7 +88,7 @@ FILE* socket_accept(int listeningSocket) {
 }
 
 FILE* socket_connect(const std::string ipAddress, u16 port) {
-    if(!sockets_init()) {
+    if(!serviceRequire("soc")) {
         return NULL;
     }
 
