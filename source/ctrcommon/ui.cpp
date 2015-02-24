@@ -372,7 +372,7 @@ RemoteFile ui_accept_remote_file(Screen screen) {
     int listen = socket_listen(5000);
     if(listen < 0) {
         std::stringstream errStream;
-        errStream << "Failed to initialize: Error " << errno;
+        errStream << "Failed to initialize: Error " << std::hex << errno;
         ui_prompt(screen, errStream.str(), false);
         return {NULL, 0};
     }
@@ -385,11 +385,11 @@ RemoteFile ui_accept_remote_file(Screen screen) {
 
     FILE* socket;
     while((socket = socket_accept(listen)) == NULL) {
-        if(!platform_is_io_waiting()) {
+        if(errno != EAGAIN && errno != EWOULDBLOCK && errno != EINPROGRESS) {
             close(listen);
 
             std::stringstream errStream;
-            errStream << "Failed to accept peer: Error " << errno;
+            errStream << "Failed to accept peer: Error " << std::hex << errno;
             ui_prompt(screen, errStream.str(), false);
             return {NULL, 0};
         } else if(platform_is_running()) {
@@ -408,12 +408,25 @@ RemoteFile ui_accept_remote_file(Screen screen) {
     ui_display_message(screen, "Reading info...");
 
     u64 fileSize;
-    if(fread(&fileSize, sizeof(fileSize), 1, socket) == 0) {
-        fclose(socket);
+    u64 bytesRead = 0;
+    while(platform_is_running()) {
+        u64 currBytesRead = fread(&fileSize, 1, (size_t) (sizeof(fileSize) - bytesRead), socket);
+        bytesRead += currBytesRead;
+        if(currBytesRead == 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+            if(bytesRead != sizeof(fileSize)) {
+                fclose(socket);
 
-        std::stringstream errStream;
-        errStream << "Failed to read info: Error " << errno;
-        ui_prompt(screen, errStream.str(), false);
+                std::stringstream errStream;
+                errStream << "Failed to read info: Error " << std::hex << errno;
+                ui_prompt(screen, errStream.str(), false);
+                return {NULL, 0};
+            }
+
+            break;
+        }
+    }
+
+    if(!platform_is_running()) {
         return {NULL, 0};
     }
 

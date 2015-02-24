@@ -392,14 +392,24 @@ bool screen_clear(u8 r, u8 g, u8 b) {
     }
 }
 
-void screen_clear_all() {
+void screen_clear_buffers(Screen screen, u8 r, u8 g, u8 b) {
+    for(int buffer = 0; buffer < 2; buffer++) {
+        screen_begin_draw(screen);
+        screen_clear(r, g, b);
+        screen_end_draw();
+
+        screen_swap_buffers();
+    }
+}
+
+void screen_clear_all(u8 r, u8 g, u8 b) {
     for(int buffer = 0; buffer < 2; buffer++) {
         screen_begin_draw(TOP_SCREEN);
-        screen_clear(0, 0, 0);
+        screen_clear(r, g, b);
         screen_end_draw();
 
         screen_begin_draw(BOTTOM_SCREEN);
-        screen_clear(0, 0, 0);
+        screen_clear(r, g, b);
         screen_end_draw();
 
         screen_swap_buffers();

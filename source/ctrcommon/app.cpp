@@ -75,7 +75,7 @@ AppCategory app_category_from_id(u16 id) {
     return APP;
 }
 
-const std::string app_get_result_string(int result) {
+const std::string app_get_result_string(AppResult result) {
     std::stringstream resultMsg;
     if(result == APP_SUCCESS) {
         resultMsg << "Operation succeeded.";
@@ -95,6 +95,10 @@ const std::string app_get_result_string(int result) {
         resultMsg << "Could not delete app: Error 0x" << std::hex << errno;
     } else if(result == APP_LAUNCH_FAILED) {
         resultMsg << "Could not launch app: Error 0x" << std::hex << errno;
+    } else if(result == APP_PROCESS_CLOSING) {
+        resultMsg << "Process closing.";
+    } else {
+        resultMsg << "Unknown error.";
     }
 
     return resultMsg.str();
@@ -168,7 +172,7 @@ std::vector<App> app_list(MediaType mediaType) {
     return titles;
 }
 
-int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
+AppResult app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
     errno = 0;
     FILE *fd = fopen(path.c_str(), "r");
     if(!fd) {
@@ -179,13 +183,13 @@ int app_install_file(MediaType mediaType, const std::string path, std::function<
     u64 size = (u64) ftell(fd);
     fseek(fd, 0, SEEK_SET);
 
-    int ret = app_install(mediaType, fd, size, onProgress);
+    AppResult ret = app_install(mediaType, fd, size, onProgress);
 
     fclose(fd);
     return ret;
 }
 
-int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress) {
+AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress) {
     errno = 0;
     if(!am_prepare()) {
         return APP_AM_INIT_FAILED;
@@ -215,17 +219,24 @@ int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int 
 
         u64 bytesRead = fread(buf, 1, bufSize, fd);
         if(bytesRead == 0) {
-            break;
+            if((errno != EAGAIN && errno != EWOULDBLOCK) || (size != 0 && pos == size)) {
+                break;
+            }
+        } else {
+            FSFILE_Write(ciaHandle, NULL, pos, buf, (u32) bytesRead, FS_WRITE_NOFLUSH);
+            pos += bytesRead;
         }
-
-        FSFILE_Write(ciaHandle, NULL, pos, buf, (u32) bytesRead, FS_WRITE_NOFLUSH);
-        pos += bytesRead;
     }
 
     free(buf);
 
     if(cancelled) {
         return APP_OPERATION_CANCELLED;
+    }
+
+    if(!platform_is_running()) {
+        AM_CancelCIAInstall(&ciaHandle);
+        return APP_PROCESS_CLOSING;
     }
 
     if(size != 0 && pos != size) {
@@ -246,7 +257,7 @@ int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int 
     return APP_SUCCESS;
 }
 
-int app_delete(App app) {
+AppResult app_delete(App app) {
     errno = 0;
     if(!am_prepare()) {
         return APP_AM_INIT_FAILED;
@@ -261,7 +272,7 @@ int app_delete(App app) {
     return APP_SUCCESS;
 }
 
-int app_launch(App app) {
+AppResult app_launch(App app) {
     errno = 0;
     if(!ns_prepare()) {
         return APP_AM_INIT_FAILED;

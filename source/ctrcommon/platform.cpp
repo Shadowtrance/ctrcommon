@@ -59,7 +59,3 @@ void platform_printf(const char *format, ...) {
 
     svcOutputDebugString(str, strlen(str));
 }
-
-bool platform_is_io_waiting() {
-    return errno == EWOULDBLOCK || errno == -EWOULDBLOCK || errno == EINPROGRESS || errno == -EINPROGRESS || errno == EAGAIN || errno == -EAGAIN;
-}

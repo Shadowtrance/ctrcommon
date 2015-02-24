@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include <3ds.h>
+#include <sys/dirent.h>
 
 static FS_archive sdmcArchive = {ARCH_SDMC, {PATH_EMPTY, 1, (u8*) ""}};
 
@@ -54,6 +55,12 @@ bool fs_exists(const std::string path) {
     FILE* fd = fopen(path.c_str(), "r");
     if(fd) {
         fclose(fd);
+        return true;
+    }
+
+    DIR* dir = opendir(path.c_str());
+    if(dir) {
+        closedir(dir);
         return true;
     }
 

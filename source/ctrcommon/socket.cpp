@@ -108,6 +108,15 @@ FILE* socket_accept(int listeningSocket) {
         return NULL;
     }
 
+    int flags = fcntl(afd, F_GETFL);
+    if(flags == -1) {
+        return NULL;
+    }
+
+    if(fcntl(afd, F_SETFL, flags | O_NONBLOCK) != 0) {
+        return NULL;
+    }
+
     return fdopen(afd, "rw");
 }
 
@@ -131,6 +140,15 @@ FILE* socket_connect(const std::string ipAddress, u16 port) {
     }
 
     if(connect(fd, (struct sockaddr *) &address, sizeof(address)) < 0) {
+        return NULL;
+    }
+
+    int flags = fcntl(fd, F_GETFL);
+    if(flags == -1) {
+        return NULL;
+    }
+
+    if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) {
         return NULL;
     }
 

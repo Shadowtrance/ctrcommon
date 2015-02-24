@@ -25,7 +25,6 @@ bool platform_is_running();
 u64 platform_get_time();
 void platform_delay(int ms);
 void platform_printf(const char* format, ...);
-bool platform_is_io_waiting();
 
 typedef enum {
     NAND,
@@ -58,24 +57,27 @@ typedef struct {
     AppCategory category;
 } App;
 
-#define APP_SUCCESS 0
-#define APP_AM_INIT_FAILED -1
-#define APP_OPERATION_CANCELLED -2
-#define APP_BEGIN_INSTALL_FAILED -3
-#define APP_IO_ERROR -4
-#define APP_FINALIZE_INSTALL_FAILED -5
-#define APP_OPEN_FILE_FAILED -6
-#define APP_DELETE_FAILED -7
-#define APP_LAUNCH_FAILED -8
+typedef enum {
+    APP_SUCCESS,
+    APP_AM_INIT_FAILED,
+    APP_OPERATION_CANCELLED,
+    APP_BEGIN_INSTALL_FAILED,
+    APP_IO_ERROR,
+    APP_FINALIZE_INSTALL_FAILED,
+    APP_OPEN_FILE_FAILED,
+    APP_DELETE_FAILED,
+    APP_LAUNCH_FAILED,
+    APP_PROCESS_CLOSING
+} AppResult;
 
-const std::string app_get_result_string(int result);
+const std::string app_get_result_string(AppResult result);
 const std::string app_get_platform_name(AppPlatform platform);
 const std::string app_get_category_name(AppCategory category);
 std::vector<App> app_list(MediaType mediaType);
-int app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
-int app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress);
-int app_delete(App app);
-int app_launch(App app);
+AppResult app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
+AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress);
+AppResult app_delete(App app);
+AppResult app_launch(App app);
 
 u64 fs_get_free_space(MediaType mediaType);
 bool fs_exists(const std::string path);
@@ -157,7 +159,8 @@ bool screen_draw_packed(int x, int y, u32 color);
 bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b);
 bool screen_copy(int x, int y, u16 width, u16 height, u8* pixels);
 bool screen_clear(u8 r, u8 g, u8 b);
-void screen_clear_all();
+void screen_clear_buffers(Screen screen, u8 r, u8 g, u8 b);
+void screen_clear_all(u8 r, u8 g, u8 b);
 u16 screen_get_str_width(const std::string str);
 u16 screen_get_str_height(const std::string str);
 bool screen_draw_char(char c, int x, int y, u8 r, u8 g, u8 b);
