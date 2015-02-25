@@ -51,6 +51,8 @@ const std::string app_get_result_string(AppResult result) {
         resultMsg << "Operation succeeded.";
     } else if(result == APP_AM_INIT_FAILED) {
         resultMsg << "Could not initialize AM service.";
+    } else if(result == APP_NS_INIT_FAILED) {
+        resultMsg << "Could not initialize NS service.";
     } else if(result == APP_OPERATION_CANCELLED) {
         resultMsg << "Operation cancelled.";
     } else if(result == APP_BEGIN_INSTALL_FAILED) {
@@ -249,7 +251,7 @@ AppResult app_delete(App app) {
 AppResult app_launch(App app) {
     errno = 0;
     if(!serviceRequire("ns")) {
-        return APP_AM_INIT_FAILED;
+        return APP_NS_INIT_FAILED;
     }
 
     Result res = NS_RebootToTitle(app.mediaType, app.titleId);

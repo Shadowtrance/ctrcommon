@@ -61,6 +61,7 @@ typedef struct {
 typedef enum {
     APP_SUCCESS,
     APP_AM_INIT_FAILED,
+    APP_NS_INIT_FAILED,
     APP_OPERATION_CANCELLED,
     APP_BEGIN_INSTALL_FAILED,
     APP_IO_ERROR,
