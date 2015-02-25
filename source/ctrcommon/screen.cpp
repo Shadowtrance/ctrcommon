@@ -139,12 +139,12 @@ static unsigned char asciiData[128][8] = {
         {0x00, 0x08, 0x1C, 0x36, 0x63, 0x41, 0x41, 0x7F}
 };
 
-u8 *fb = NULL;
-u16 fbWidth = 0;
-u16 fbHeight = 0;
+static u8* fb = NULL;
+static u16 fbWidth = 0;
+static u16 fbHeight = 0;
 
 bool screen_begin_draw(Screen screen) {
-    if(fb != NULL || !serviceRequire("gfx")) {
+    if(fb != NULL || !service_require("gfx")) {
         return false;
     }
 
@@ -153,7 +153,7 @@ bool screen_begin_draw(Screen screen) {
 }
 
 bool screen_end_draw() {
-    if(fb == NULL || !serviceRequire("gfx")) {
+    if(fb == NULL || !service_require("gfx")) {
         return false;
     }
 
@@ -164,7 +164,7 @@ bool screen_end_draw() {
 }
 
 void screen_swap_buffers_quick() {
-    if(!serviceRequire("gfx")) {
+    if(!service_require("gfx")) {
         return;
     }
 
@@ -173,7 +173,7 @@ void screen_swap_buffers_quick() {
 }
 
 void screen_swap_buffers() {
-    if(!serviceRequire("gfx")) {
+    if(!service_require("gfx")) {
         return;
     }
 

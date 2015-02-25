@@ -22,7 +22,7 @@ u64 ntohll(u64 value) {
 }
 
 u32 socket_get_host_ip() {
-    if(!serviceRequire("soc")) {
+    if(!service_require("soc")) {
         return 0;
     }
 
@@ -30,7 +30,7 @@ u32 socket_get_host_ip() {
 }
 
 int socket_listen(u16 port) {
-    if(!serviceRequire("soc")) {
+    if(!service_require("soc")) {
         return -1;
     }
 
@@ -66,7 +66,7 @@ int socket_listen(u16 port) {
 }
 
 FILE* socket_accept(int listeningSocket) {
-    if(!serviceRequire("soc")) {
+    if(!service_require("soc")) {
         return NULL;
     }
 
@@ -88,7 +88,7 @@ FILE* socket_accept(int listeningSocket) {
 }
 
 FILE* socket_connect(const std::string ipAddress, u16 port) {
-    if(!serviceRequire("soc")) {
+    if(!service_require("soc")) {
         return NULL;
     }
 

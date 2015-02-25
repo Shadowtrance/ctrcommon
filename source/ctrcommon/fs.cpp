@@ -36,7 +36,7 @@ const std::string fs_fix_path(const std::string path) {
 }
 
 u64 fs_get_free_space(MediaType mediaType) {
-    if(!serviceRequire("fs")) {
+    if(!service_require("fs")) {
         return 0;
     }
 
@@ -50,6 +50,7 @@ u64 fs_get_free_space(MediaType mediaType) {
     }
 
     if(res != 0) {
+        platform_set_error(service_parse_error((u32) res));
         return 0;
     }
 
@@ -72,6 +73,11 @@ bool fs_exists(const std::string path) {
     return false;
 }
 
-void fs_delete(const std::string path) {
-    FSUSER_DeleteFile(NULL, sdmcArchive, FS_makePath(PATH_CHAR, fs_fix_path(path).c_str()));
+bool fs_delete(const std::string path) {
+    Result res = FSUSER_DeleteFile(NULL, sdmcArchive, FS_makePath(PATH_CHAR, fs_fix_path(path).c_str()));
+    if(res != 0) {
+        platform_set_error(service_parse_error((u32) res));
+    }
+
+    return res == 0;
 }

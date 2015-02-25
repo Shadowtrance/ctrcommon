@@ -49,26 +49,28 @@ const std::string app_get_result_string(AppResult result) {
     std::stringstream resultMsg;
     if(result == APP_SUCCESS) {
         resultMsg << "Operation succeeded.";
+    } else if(result == APP_PROCESS_CLOSING) {
+        resultMsg << "Process closing.";
+    } else if(result == APP_OPERATION_CANCELLED) {
+        resultMsg << "Operation cancelled.";
     } else if(result == APP_AM_INIT_FAILED) {
         resultMsg << "Could not initialize AM service.";
     } else if(result == APP_NS_INIT_FAILED) {
         resultMsg << "Could not initialize NS service.";
-    } else if(result == APP_OPERATION_CANCELLED) {
-        resultMsg << "Operation cancelled.";
-    } else if(result == APP_BEGIN_INSTALL_FAILED) {
-        resultMsg << "Could not begin installation: Error 0x" << std::hex << errno;
     } else if(result == APP_IO_ERROR) {
         resultMsg << "I/O Error 0x" << std::hex << errno;
-    } else if(result == APP_FINALIZE_INSTALL_FAILED) {
-        resultMsg << "Could not finalize installation: Error 0x" << std::hex << errno;
     } else if(result == APP_OPEN_FILE_FAILED) {
         resultMsg << "Could not open file: Error 0x" << std::hex << errno;
+    } else if(result == APP_BEGIN_INSTALL_FAILED) {
+        resultMsg << "Could not begin installation." << "\n" << platform_get_error_string(platform_get_error());
+    } else if(result == APP_INSTALL_ERROR) {
+        resultMsg << "Could not install app." << "\n" << platform_get_error_string(platform_get_error());
+    } else if(result == APP_FINALIZE_INSTALL_FAILED) {
+        resultMsg << "Could not finalize installation." << "\n" << platform_get_error_string(platform_get_error());
     } else if(result == APP_DELETE_FAILED) {
-        resultMsg << "Could not delete app: Error 0x" << std::hex << errno;
+        resultMsg << "Could not delete app." << "\n" << platform_get_error_string(platform_get_error());
     } else if(result == APP_LAUNCH_FAILED) {
-        resultMsg << "Could not launch app: Error 0x" << std::hex << errno;
-    } else if(result == APP_PROCESS_CLOSING) {
-        resultMsg << "Process closing.";
+        resultMsg << "Could not launch app." << "\n" << platform_get_error_string(platform_get_error());
     } else {
         resultMsg << "Unknown error.";
     }
@@ -110,17 +112,21 @@ const std::string app_get_category_name(AppCategory category) {
 
 std::vector<App> app_list(MediaType mediaType) {
     std::vector<App> titles;
-    if(!serviceRequire("am")) {
+    if(!service_require("am")) {
         return titles;
     }
 
     u32 titleCount;
-    if(AM_GetTitleCount(app_mediatype_to_byte(mediaType), &titleCount) != 0) {
+    Result titleCountResult = AM_GetTitleCount(app_mediatype_to_byte(mediaType), &titleCount);
+    if(titleCountResult != 0) {
+        platform_set_error(service_parse_error((u32) titleCountResult));
         return titles;
     }
 
     u64 titleIds[titleCount];
-    if(AM_GetTitleList(app_mediatype_to_byte(mediaType), titleCount, titleIds) != 0) {
+    Result titleListResult = AM_GetTitleList(app_mediatype_to_byte(mediaType), titleCount, titleIds);
+    if(titleListResult != 0) {
+        platform_set_error(service_parse_error((u32) titleListResult));
         return titles;
     }
 
@@ -145,8 +151,7 @@ std::vector<App> app_list(MediaType mediaType) {
 }
 
 AppResult app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
-    errno = 0;
-    if(!serviceRequire("am")) {
+    if(!service_require("am")) {
         return APP_AM_INIT_FAILED;
     }
 
@@ -166,8 +171,7 @@ AppResult app_install_file(MediaType mediaType, const std::string path, std::fun
 }
 
 AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress) {
-    errno = 0;
-    if(!serviceRequire("am")) {
+    if(!service_require("am")) {
         return APP_AM_INIT_FAILED;
     }
 
@@ -176,9 +180,9 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
     }
 
     Handle ciaHandle;
-    int startRet = AM_StartCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
-    if(startRet != 0) {
-        errno = startRet;
+    Result startResult = AM_StartCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
+    if(startResult != 0) {
+        platform_set_error(service_parse_error((u32) startResult));
         return APP_BEGIN_INSTALL_FAILED;
     }
 
@@ -199,7 +203,13 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
                 break;
             }
         } else {
-            FSFILE_Write(ciaHandle, NULL, pos, buf, (u32) bytesRead, FS_WRITE_NOFLUSH);
+            Result writeResult = FSFILE_Write(ciaHandle, NULL, pos, buf, (u32) bytesRead, FS_WRITE_NOFLUSH);
+            if(writeResult != 0) {
+                AM_CancelCIAInstall(&ciaHandle);
+                platform_set_error(service_parse_error((u32) writeResult));
+                return APP_INSTALL_ERROR;
+            }
+
             pos += bytesRead;
         }
     }
@@ -224,9 +234,9 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
         onProgress(100);
     }
 
-    Result res = AM_FinishCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
-    if(res != 0 && (u32) res != 0xC8A044DC) { // Happens when already installed, but seems to have succeeded anyway...
-        errno = res;
+    Result finishResult = AM_FinishCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
+    if(finishResult != 0 && (u32) finishResult != 0xC8A044DC) { // Happens when already installed, but seems to have succeeded anyway...
+        platform_set_error(service_parse_error((u32) finishResult));
         return APP_FINALIZE_INSTALL_FAILED;
     }
 
@@ -234,14 +244,13 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
 }
 
 AppResult app_delete(App app) {
-    errno = 0;
-    if(!serviceRequire("am")) {
+    if(!service_require("am")) {
         return APP_AM_INIT_FAILED;
     }
 
     Result res = AM_DeleteAppTitle(app_mediatype_to_byte(app.mediaType), app.titleId);
     if(res != 0) {
-        errno = res;
+        platform_set_error(service_parse_error((u32) res));
         return APP_DELETE_FAILED;
     }
 
@@ -249,14 +258,13 @@ AppResult app_delete(App app) {
 }
 
 AppResult app_launch(App app) {
-    errno = 0;
-    if(!serviceRequire("ns")) {
+    if(!service_require("ns")) {
         return APP_NS_INIT_FAILED;
     }
 
     Result res = NS_RebootToTitle(app.mediaType, app.titleId);
     if(res != 0) {
-        errno = res;
+        platform_set_error(service_parse_error((u32) res));
         return APP_LAUNCH_FAILED;
     }
 

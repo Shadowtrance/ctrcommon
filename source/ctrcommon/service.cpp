@@ -1,17 +1,18 @@
+#include "service.hpp"
+
 #include <malloc.h>
 
-#include <functional>
 #include <map>
 
-#include <3ds.h>
 #include <stdio.h>
-#include <string.h>
 
-#include "service.hpp"
+#include <3ds.h>
+
+#define GET_BITS(v, s, e) (((v) >> (s)) & ((1 << ((e) - (s) + 1)) - 1))
 
 static u32* socBuffer;
 
-Result fullFsInit() {
+Result fs_init() {
     Result fsResult = fsInit();
     if(fsResult != 0) {
         return fsResult;
@@ -25,12 +26,12 @@ Result fullFsInit() {
     return 0;
 }
 
-void fullFsExit() {
+void fs_exit() {
     sdmcExit();
     fsExit();
 }
 
-Result socInit() {
+Result soc_init() {
     socBuffer = (u32*) memalign(0x1000, 0x100000);
     if(socBuffer == NULL) {
         return -1;
@@ -46,7 +47,7 @@ Result socInit() {
     return 0;
 }
 
-void socCleanup() {
+void soc_cleanup() {
     SOC_Shutdown();
     if(socBuffer != NULL) {
         free(socBuffer);
@@ -54,14 +55,14 @@ void socCleanup() {
     }
 }
 
-std::map<std::string, std::function<void()>> services;
-bool servicesInitialized = false;
+static std::map<std::string, std::function<void()>> services;
+static bool servicesInitialized = false;
 
-bool serviceInit() {
+bool service_init() {
     return (servicesInitialized = srvInit() == 0 && aptInit() == 0);
 }
 
-void serviceCleanup() {
+void service_cleanup() {
     if(!servicesInitialized) {
         return;
     }
@@ -77,7 +78,7 @@ void serviceCleanup() {
     srvExit();
 }
 
-bool serviceRequire(const std::string service) {
+bool service_require(const std::string service) {
     if(!servicesInitialized) {
         return false;
     }
@@ -86,39 +87,57 @@ bool serviceRequire(const std::string service) {
         return true;
     }
 
-    bool success = false;
+    Result result = 0;
     std::function<void()> cleanup = NULL;
     if(service.compare("gfx") == 0) {
         gfxInitDefault();
-        success = true;
+        result = 0;
         cleanup = NULL;
     } else if(service.compare("hid") == 0) {
-        success = hidInit(NULL) == 0;
+        result = hidInit(NULL);
         cleanup = &hidExit;
     } else if(service.compare("fs") == 0) {
-        success = fullFsInit() == 0;
-        cleanup = &fullFsExit;
+        result = fs_init();
+        cleanup = &fs_exit;
     } else if(service.compare("am") == 0) {
-        success = amInit() == 0;
+        result = amInit();
         cleanup = &amExit;
     } else if(service.compare("ns") == 0) {
-        success = nsInit() == 0;
+        result = nsInit();
         cleanup = &nsExit;
     } else if(service.compare("soc") == 0) {
-        success = socInit() == 0;
-        cleanup = &socCleanup;
+        result = soc_init();
+        cleanup = &soc_cleanup;
     } else if(service.compare("csnd") == 0) {
-        success = csndInit() == 0;
+        result = csndInit();
         cleanup = &csndExit;
     } else if(service.compare("console") == 0) {
         consoleDebugInit(debugDevice_3DMOO);
-        success = true;
+        result = 0;
         cleanup = NULL;
     }
 
-    if(success) {
+    if(result == 0) {
         services[service] = cleanup;
+    } else {
+        platform_set_error(service_parse_error((u32) result));
     }
 
-    return success;
+    return result == 0;
+}
+
+Error service_parse_error(u32 error) {
+    Error err;
+
+    u32 module = GET_BITS(error, 10, 17);
+    if(module == 79) {
+        module = MODULE_RO;
+    }
+
+    err.module = (ErrorModule) module;
+    err.level = (ErrorLevel) GET_BITS(error, 27, 31);
+    err.summary = (ErrorSummary) GET_BITS(error, 21, 26);
+    err.description = (ErrorDescription) GET_BITS(error, 0, 9);
+
+    return err;
 }

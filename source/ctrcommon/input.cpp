@@ -64,7 +64,7 @@ const std::string input_get_button_name(Button button) {
 }
 
 void input_poll() {
-    if(!serviceRequire("hid")) {
+    if(!service_require("hid")) {
         return;
     }
 
@@ -92,7 +92,7 @@ Button input_get_any_pressed() {
 }
 
 bool input_is_released(Button button) {
-    if(!serviceRequire("hid")) {
+    if(!service_require("hid")) {
         return false;
     }
 
@@ -100,7 +100,7 @@ bool input_is_released(Button button) {
 }
 
 bool input_is_pressed(Button button) {
-    if(!serviceRequire("hid")) {
+    if(!service_require("hid")) {
         return false;
     }
 
@@ -108,7 +108,7 @@ bool input_is_pressed(Button button) {
 }
 
 bool input_is_held(Button button) {
-    if(!serviceRequire("hid")) {
+    if(!service_require("hid")) {
         return false;
     }
 
@@ -116,7 +116,7 @@ bool input_is_held(Button button) {
 }
 
 Touch input_get_touch() {
-    if(!serviceRequire("hid")) {
+    if(!service_require("hid")) {
         return {0, 0};
     }
 
