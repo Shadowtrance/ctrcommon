@@ -372,7 +372,7 @@ RemoteFile ui_accept_remote_file(Screen screen) {
     int listen = socket_listen(5000);
     if(listen < 0) {
         std::stringstream errStream;
-        errStream << "Failed to initialize: Error " << std::hex << errno;
+        errStream << "Failed to initialize." << "\n" << strerror(errno) << "\n";
         ui_prompt(screen, errStream.str(), false);
         return {NULL, 0};
     }
@@ -389,7 +389,7 @@ RemoteFile ui_accept_remote_file(Screen screen) {
             close(listen);
 
             std::stringstream errStream;
-            errStream << "Failed to accept peer: Error " << std::hex << errno;
+            errStream << "Failed to accept peer." << "\n" << strerror(errno) << "\n";
             ui_prompt(screen, errStream.str(), false);
             return {NULL, 0};
         } else if(platform_is_running()) {
@@ -417,7 +417,7 @@ RemoteFile ui_accept_remote_file(Screen screen) {
                 fclose(socket);
 
                 std::stringstream errStream;
-                errStream << "Failed to read info: Error " << std::hex << errno;
+                errStream << "Failed to read info." << "\n" << strerror(errno) << "\n";
                 ui_prompt(screen, errStream.str(), false);
                 return {NULL, 0};
             }

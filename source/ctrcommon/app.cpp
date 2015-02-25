@@ -58,9 +58,9 @@ const std::string app_get_result_string(AppResult result) {
     } else if(result == APP_NS_INIT_FAILED) {
         resultMsg << "Could not initialize NS service.";
     } else if(result == APP_IO_ERROR) {
-        resultMsg << "I/O Error 0x" << std::hex << errno;
+        resultMsg << "I/O Error." << "\n" << strerror(errno);
     } else if(result == APP_OPEN_FILE_FAILED) {
-        resultMsg << "Could not open file: Error 0x" << std::hex << errno;
+        resultMsg << "Could not open file." << "\n" << strerror(errno);
     } else if(result == APP_BEGIN_INSTALL_FAILED) {
         resultMsg << "Could not begin installation." << "\n" << platform_get_error_string(platform_get_error());
     } else if(result == APP_INSTALL_ERROR) {
