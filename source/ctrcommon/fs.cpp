@@ -54,7 +54,7 @@ u64 fs_get_free_space(MediaType mediaType) {
         return 0;
     }
 
-    return clusterSize * freeClusters;
+    return (u64) clusterSize * (u64) freeClusters;
 }
 
 bool fs_exists(const std::string path) {
