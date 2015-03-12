@@ -3,6 +3,7 @@
 
 #include <malloc.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <sstream>
 
@@ -44,14 +45,14 @@ void platform_delay(int ms) {
 }
 
 void platform_printf(const char *format, ...) {
-    if(!service_require("console")) {
-        return;
-    }
+    char buffer[256];
 
     va_list args;
     va_start(args, format);
-    vfprintf(stderr, format, args);
+    vsnprintf(buffer, 256, format, args);
     va_end(args);
+
+    svcOutputDebugString(buffer, strlen(buffer));
 }
 
 Error platform_get_error() {
