@@ -235,7 +235,7 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
     }
 
     Result finishResult = AM_FinishCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
-    if(finishResult != 0 && (u32) finishResult != 0xC8A044DC) { // Happens when already installed, but seems to have succeeded anyway...
+    if(finishResult != 0) {
         platform_set_error(service_parse_error((u32) finishResult));
         return APP_FINALIZE_INSTALL_FAILED;
     }
