@@ -124,7 +124,7 @@ std::vector<App> app_list(MediaType mediaType) {
     }
 
     u64 titleIds[titleCount];
-    Result titleListResult = AM_GetTitleList(app_mediatype_to_byte(mediaType), titleCount, titleIds);
+    Result titleListResult = AM_GetTitleIdList(app_mediatype_to_byte(mediaType), titleCount, titleIds);
     if(titleListResult != 0) {
         platform_set_error(service_parse_error((u32) titleListResult));
         return titles;
