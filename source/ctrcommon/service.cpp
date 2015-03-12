@@ -134,6 +134,7 @@ Error service_parse_error(u32 error) {
         module = MODULE_RO;
     }
 
+    err.raw = error;
     err.module = (ErrorModule) module;
     err.level = (ErrorLevel) GET_BITS(error, 27, 31);
     err.summary = (ErrorSummary) GET_BITS(error, 21, 26);

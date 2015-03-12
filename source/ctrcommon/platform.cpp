@@ -75,6 +75,9 @@ void platform_set_error(Error error) {
 
 std::string platform_get_error_string(Error error) {
     std::stringstream result;
+
+    result << "Raw Error: 0x" << std::hex << error.raw << "\n";
+
     result << "Module: ";
     switch(error.module) {
         case MODULE_COMMON:
@@ -340,7 +343,7 @@ std::string platform_get_error_string(Error error) {
             break;
     }
 
-    result << "\n";
+    result << " (0x" << std::hex << error.module << ")" << "\n";
 
     result << "Level: ";
     switch(error.level) {
@@ -376,7 +379,7 @@ std::string platform_get_error_string(Error error) {
             break;
     }
 
-    result << "\n";
+    result << " (0x" << std::hex << error.level << ")" << "\n";
 
     result << "Summary: ";
     switch(error.summary) {
@@ -421,7 +424,7 @@ std::string platform_get_error_string(Error error) {
             break;
     }
 
-    result << "\n";
+    result << " (0x" << std::hex << error.summary << ")" << "\n";
 
     result << "Description: ";
     switch(error.description) {
@@ -573,6 +576,8 @@ std::string platform_get_error_string(Error error) {
             result << "Invalid description";
             break;
     }
+
+    result << " (0x" << std::hex << error.description << ")" << "\n";
 
     return result.str();
 }

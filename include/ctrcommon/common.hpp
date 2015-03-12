@@ -190,6 +190,7 @@ typedef enum {
 } ErrorDescription;
 
 typedef struct {
+    u32 raw;
     ErrorModule module;
     ErrorLevel level;
     ErrorSummary summary;
