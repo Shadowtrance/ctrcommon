@@ -18,7 +18,7 @@ struct ui_alphabetize {
     }
 };
 
-bool ui_select(SelectableElement *selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect, bool useTopScreen) {
+bool ui_select(SelectableElement *selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect, bool useTopScreen, bool alphabetize) {
     u32 cursor = 0;
     u32 scroll = 0;
 
@@ -29,7 +29,10 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
 
     bool elementsDirty = false;
     bool resetCursorIfDirty = true;
-    std::sort(elements.begin(), elements.end(), ui_alphabetize());
+    if(alphabetize) {
+        std::sort(elements.begin(), elements.end(), ui_alphabetize());
+    }
+
     while(platform_is_running()) {
         input_poll();
         if(input_is_pressed(BUTTON_A)) {
@@ -128,7 +131,10 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
 
             selectionScroll = 0;
             selectionScrollEndTime = 0;
-            std::sort(elements.begin(), elements.end(), ui_alphabetize());
+            if(alphabetize) {
+                std::sort(elements.begin(), elements.end(), ui_alphabetize());
+            }
+
             elementsDirty = false;
             resetCursorIfDirty = true;
         }
@@ -240,7 +246,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
         }
 
         return true;
-    }, useTopScreen);
+    }, useTopScreen, true);
 
     if(result) {
         *selectedFile = selected.id;
@@ -280,7 +286,7 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
         return onLoop != NULL && onLoop();
     }, [&](SelectableElement select) {
         return select.name.compare("None") != 0;
-    }, useTopScreen);
+    }, useTopScreen, true);
 
     if(result) {
         for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
