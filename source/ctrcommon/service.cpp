@@ -92,7 +92,7 @@ bool service_require(const std::string service) {
     if(service.compare("gfx") == 0) {
         gfxInitDefault();
         result = 0;
-        cleanup = NULL;
+        cleanup = &gfxExit;
     } else if(service.compare("hid") == 0) {
         result = hidInit(NULL);
         cleanup = &hidExit;
