@@ -167,7 +167,10 @@ void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::st
     elements.push_back({".", "."});
     elements.push_back({"..", ".."});
 
-    DIR *dir = opendir(directory.c_str());
+    bool hasSlash = directory.size() != 0 && directory[directory.size() - 1] == '/';
+    const std::string dirWithSlash = hasSlash ? directory : directory + "/";
+
+    DIR *dir = opendir(dirWithSlash.c_str());
     if(dir == NULL) {
         return;
     }
@@ -179,7 +182,7 @@ void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::st
         }
 
         const std::string dirName = std::string(ent->d_name);
-        const std::string path = directory + "/" + dirName;
+        const std::string path = dirWithSlash + dirName;
         if(ui_is_directory(path)) {
             elements.push_back({path, dirName});
         } else {
