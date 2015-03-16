@@ -12,7 +12,7 @@
 static Error* currentError;
 
 bool platform_init() {
-    return service_init() && service_require("fs");
+    return service_init() && service_require("fs") && service_require("gfx");
 }
 
 void platform_cleanup() {
