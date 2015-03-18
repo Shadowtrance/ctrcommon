@@ -200,6 +200,7 @@ typedef struct {
 bool platform_init();
 void platform_cleanup();
 bool platform_is_running();
+bool platform_is_ninjhax();
 u32 platform_get_device_id();
 u64 platform_get_time();
 void platform_delay(int ms);

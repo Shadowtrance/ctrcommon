@@ -23,6 +23,15 @@ bool platform_is_running() {
     return aptMainLoop();
 }
 
+bool platform_is_ninjhax() {
+    Result result = hbInit();
+    if(result == 0) {
+        hbExit();
+    }
+
+    return result == 0;
+}
+
 u32 platform_get_device_id() {
     if(!service_require("am")) {
         return 0;
