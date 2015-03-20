@@ -5,12 +5,6 @@
 
 #include <string>
 
-typedef struct {
-    u8 r;
-    u8 g;
-    u8 b;
-} Color;
-
 typedef enum {
     TOP_SCREEN,
     BOTTOM_SCREEN
