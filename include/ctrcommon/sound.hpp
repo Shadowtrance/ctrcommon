@@ -13,8 +13,8 @@ typedef enum {
     PCM16 = 4096
 } SoundFormat;
 
-void* sound_alloc(u32 size);
-void sound_free(void* mem);
-bool sound_play(SoundChannel channel, SoundFormat format, u32 sampleRate, void* samples, u32 numSamples);
+void* soundAlloc(u32 size);
+void soundFree(void* mem);
+bool soundPlay(SoundChannel channel, SoundFormat format, u32 sampleRate, void* samples, u32 numSamples);
 
 #endif

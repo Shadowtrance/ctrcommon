@@ -13,11 +13,11 @@
 
 #include <3ds.h>
 
-u8 app_mediatype_to_byte(MediaType mediaType) {
+u8 appMediatypeToByte(MediaType mediaType) {
     return mediaType == NAND ? mediatype_NAND : mediatype_SDMC;
 }
 
-AppPlatform app_platform_from_id(u16 id) {
+AppPlatform appPlatformFromId(u16 id) {
     switch(id) {
         case 1:
             return WII;
@@ -32,7 +32,7 @@ AppPlatform app_platform_from_id(u16 id) {
     }
 }
 
-AppCategory app_category_from_id(u16 id) {
+AppCategory appCategoryFromId(u16 id) {
     if((id & 0x2) == 0x2) {
         return DLC;
     } else if((id & 0x6) == 0x6) {
@@ -46,7 +46,7 @@ AppCategory app_category_from_id(u16 id) {
     return APP;
 }
 
-const std::string app_get_result_string(AppResult result) {
+const std::string appGetResultString(AppResult result) {
     std::stringstream resultMsg;
     if(result == APP_SUCCESS) {
         resultMsg << "Operation succeeded.";
@@ -63,15 +63,15 @@ const std::string app_get_result_string(AppResult result) {
     } else if(result == APP_OPEN_FILE_FAILED) {
         resultMsg << "Could not open file." << "\n" << strerror(errno);
     } else if(result == APP_BEGIN_INSTALL_FAILED) {
-        resultMsg << "Could not begin installation." << "\n" << platform_get_error_string(platform_get_error());
+        resultMsg << "Could not begin installation." << "\n" << platformGetErrorString(platformGetError());
     } else if(result == APP_INSTALL_ERROR) {
-        resultMsg << "Could not install app." << "\n" << platform_get_error_string(platform_get_error());
+        resultMsg << "Could not install app." << "\n" << platformGetErrorString(platformGetError());
     } else if(result == APP_FINALIZE_INSTALL_FAILED) {
-        resultMsg << "Could not finalize installation." << "\n" << platform_get_error_string(platform_get_error());
+        resultMsg << "Could not finalize installation." << "\n" << platformGetErrorString(platformGetError());
     } else if(result == APP_DELETE_FAILED) {
-        resultMsg << "Could not delete app." << "\n" << platform_get_error_string(platform_get_error());
+        resultMsg << "Could not delete app." << "\n" << platformGetErrorString(platformGetError());
     } else if(result == APP_LAUNCH_FAILED) {
-        resultMsg << "Could not launch app." << "\n" << platform_get_error_string(platform_get_error());
+        resultMsg << "Could not launch app." << "\n" << platformGetErrorString(platformGetError());
     } else {
         resultMsg << "Unknown error.";
     }
@@ -79,7 +79,7 @@ const std::string app_get_result_string(AppResult result) {
     return resultMsg.str();
 }
 
-const std::string app_get_platform_name(AppPlatform platform) {
+const std::string appGetPlatformName(AppPlatform platform) {
     switch(platform) {
         case WII:
             return "Wii";
@@ -94,7 +94,7 @@ const std::string app_get_platform_name(AppPlatform platform) {
     }
 }
 
-const std::string app_get_category_name(AppCategory category) {
+const std::string appGetCategoryName(AppCategory category) {
     switch(category) {
         case APP:
             return "App";
@@ -111,23 +111,23 @@ const std::string app_get_category_name(AppCategory category) {
     }
 }
 
-std::vector<App> app_list(MediaType mediaType) {
+std::vector<App> appList(MediaType mediaType) {
     std::vector<App> titles;
-    if(!service_require("am")) {
+    if(!serviceRequire("am")) {
         return titles;
     }
 
     u32 titleCount;
-    Result titleCountResult = AM_GetTitleCount(app_mediatype_to_byte(mediaType), &titleCount);
+    Result titleCountResult = AM_GetTitleCount(appMediatypeToByte(mediaType), &titleCount);
     if(titleCountResult != 0) {
-        platform_set_error(service_parse_error((u32) titleCountResult));
+        platformSetError(serviceParseError((u32) titleCountResult));
         return titles;
     }
 
     u64 titleIds[titleCount];
-    Result titleListResult = AM_GetTitleIdList(app_mediatype_to_byte(mediaType), titleCount, titleIds);
+    Result titleListResult = AM_GetTitleIdList(appMediatypeToByte(mediaType), titleCount, titleIds);
     if(titleListResult != 0) {
-        platform_set_error(service_parse_error((u32) titleListResult));
+        platformSetError(serviceParseError((u32) titleListResult));
         return titles;
     }
 
@@ -135,15 +135,15 @@ std::vector<App> app_list(MediaType mediaType) {
         u64 titleId = titleIds[i];
         App app;
         app.titleId = titleId;
-        app.uniqueId = ((u32 *) &titleId)[0];
-        AM_GetTitleProductCode(app_mediatype_to_byte(mediaType), titleId, app.productCode);
+        app.uniqueId = ((u32*) &titleId)[0];
+        AM_GetTitleProductCode(appMediatypeToByte(mediaType), titleId, app.productCode);
         if(strcmp(app.productCode, "") == 0) {
             strcpy(app.productCode, "<N/A>");
         }
 
         app.mediaType = mediaType;
-        app.platform = app_platform_from_id(((u16 *) &titleId)[3]);
-        app.category = app_category_from_id(((u16 *) &titleId)[2]);
+        app.platform = appPlatformFromId(((u16 *) &titleId)[3]);
+        app.category = appCategoryFromId(((u16 *) &titleId)[2]);
 
         titles.push_back(app);
     }
@@ -151,12 +151,12 @@ std::vector<App> app_list(MediaType mediaType) {
     return titles;
 }
 
-AppResult app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
-    if(!service_require("am")) {
+AppResult appInstallFile(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress) {
+    if(!serviceRequire("am")) {
         return APP_AM_INIT_FAILED;
     }
 
-    FILE *fd = fopen(path.c_str(), "r");
+    FILE* fd = fopen(path.c_str(), "r");
     if(!fd) {
         return APP_OPEN_FILE_FAILED;
     }
@@ -165,14 +165,14 @@ AppResult app_install_file(MediaType mediaType, const std::string path, std::fun
     u64 size = (u64) ftell(fd);
     fseek(fd, 0, SEEK_SET);
 
-    AppResult ret = app_install(mediaType, fd, size, onProgress);
+    AppResult ret = appInstall(mediaType, fd, size, onProgress);
 
     fclose(fd);
     return ret;
 }
 
-AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress) {
-    if(!service_require("am")) {
+AppResult appInstall(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress) {
+    if(!serviceRequire("am")) {
         return APP_AM_INIT_FAILED;
     }
 
@@ -181,17 +181,17 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
     }
 
     Handle ciaHandle;
-    Result startResult = AM_StartCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
+    Result startResult = AM_StartCiaInstall(appMediatypeToByte(mediaType), &ciaHandle);
     if(startResult != 0) {
-        platform_set_error(service_parse_error((u32) startResult));
+        platformSetError(serviceParseError((u32) startResult));
         return APP_BEGIN_INSTALL_FAILED;
     }
 
     u32 bufSize = 1024 * 16; // 16KB
-    void *buf = malloc(bufSize);
+    void* buf = malloc(bufSize);
     bool cancelled = false;
     u64 pos = 0;
-    while(platform_is_running()) {
+    while(platformIsRunning()) {
         if(onProgress != NULL && !onProgress(size != 0 ? (int) ((pos / (float) size) * 100) : 0)) {
             AM_CancelCIAInstall(&ciaHandle);
             cancelled = true;
@@ -207,7 +207,7 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
             Result writeResult = FSFILE_Write(ciaHandle, NULL, pos, buf, (u32) bytesRead, FS_WRITE_NOFLUSH);
             if(writeResult != 0) {
                 AM_CancelCIAInstall(&ciaHandle);
-                platform_set_error(service_parse_error((u32) writeResult));
+                platformSetError(serviceParseError((u32) writeResult));
                 return APP_INSTALL_ERROR;
             }
 
@@ -221,7 +221,7 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
         return APP_OPERATION_CANCELLED;
     }
 
-    if(!platform_is_running()) {
+    if(!platformIsRunning()) {
         AM_CancelCIAInstall(&ciaHandle);
         return APP_PROCESS_CLOSING;
     }
@@ -235,37 +235,37 @@ AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<boo
         onProgress(100);
     }
 
-    Result finishResult = AM_FinishCiaInstall(app_mediatype_to_byte(mediaType), &ciaHandle);
+    Result finishResult = AM_FinishCiaInstall(appMediatypeToByte(mediaType), &ciaHandle);
     if(finishResult != 0) {
-        platform_set_error(service_parse_error((u32) finishResult));
+        platformSetError(serviceParseError((u32) finishResult));
         return APP_FINALIZE_INSTALL_FAILED;
     }
 
     return APP_SUCCESS;
 }
 
-AppResult app_delete(App app) {
-    if(!service_require("am")) {
+AppResult appDelete(App app) {
+    if(!serviceRequire("am")) {
         return APP_AM_INIT_FAILED;
     }
 
-    Result res = AM_DeleteAppTitle(app_mediatype_to_byte(app.mediaType), app.titleId);
+    Result res = AM_DeleteAppTitle(appMediatypeToByte(app.mediaType), app.titleId);
     if(res != 0) {
-        platform_set_error(service_parse_error((u32) res));
+        platformSetError(serviceParseError((u32) res));
         return APP_DELETE_FAILED;
     }
 
     return APP_SUCCESS;
 }
 
-AppResult app_launch(App app) {
-    if(!service_require("ns")) {
+AppResult appLaunch(App app) {
+    if(!serviceRequire("ns")) {
         return APP_NS_INIT_FAILED;
     }
 
     Result res = NS_RebootToTitle(app.mediaType, app.titleId);
     if(res != 0) {
-        platform_set_error(service_parse_error((u32) res));
+        platformSetError(serviceParseError((u32) res));
         return APP_LAUNCH_FAILED;
     }
 

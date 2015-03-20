@@ -13,19 +13,19 @@
 
 static Error* currentError;
 
-bool platform_init() {
-    return service_init() && service_require("fs") && service_require("gfx");
+bool platformInit() {
+    return serviceInit() && serviceRequire("fs") && serviceRequire("gfx");
 }
 
-void platform_cleanup() {
-    service_cleanup();
+void platformCleanup() {
+    serviceCleanup();
 }
 
-bool platform_is_running() {
+bool platformIsRunning() {
     return aptMainLoop();
 }
 
-bool platform_is_ninjhax() {
+bool platformIsNinjhax() {
     Result result = hbInit();
     if(result == 0) {
         hbExit();
@@ -34,8 +34,8 @@ bool platform_is_ninjhax() {
     return result == 0;
 }
 
-u32 platform_get_device_id() {
-    if(!service_require("am")) {
+u32 platformGetDeviceId() {
+    if(!serviceRequire("am")) {
         return 0;
     }
 
@@ -47,15 +47,15 @@ u32 platform_get_device_id() {
     return deviceId;
 }
 
-u64 platform_get_time() {
+u64 platformGetTime() {
     return osGetTime();
 }
 
-void platform_delay(int ms) {
+void platformDelay(int ms) {
     svcSleepThread(ms * 1000000);
 }
 
-void platform_printf(const char *format, ...) {
+void platformPrintf(const char* format, ...) {
     char buffer[256];
 
     va_list args;
@@ -66,7 +66,7 @@ void platform_printf(const char *format, ...) {
     svcOutputDebugString(buffer, strlen(buffer));
 }
 
-Error platform_get_error() {
+Error platformGetError() {
     Error error = *currentError;
     if(currentError != NULL) {
         free(currentError);
@@ -76,7 +76,7 @@ Error platform_get_error() {
     return error;
 }
 
-void platform_set_error(Error error) {
+void platformSetError(Error error) {
     if(currentError == NULL) {
         currentError = (Error*) malloc(sizeof(Error));
     }
@@ -84,7 +84,7 @@ void platform_set_error(Error error) {
     *currentError = error;
 }
 
-std::string platform_get_error_string(Error error) {
+std::string platformGetErrorString(Error error) {
     std::stringstream result;
 
     result << "Raw Error: 0x" << std::hex << error.raw << "\n";

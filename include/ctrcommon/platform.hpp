@@ -183,16 +183,16 @@ typedef struct {
     ErrorDescription description;
 } Error;
 
-bool platform_init();
-void platform_cleanup();
-bool platform_is_running();
-bool platform_is_ninjhax();
-u32 platform_get_device_id();
-u64 platform_get_time();
-void platform_delay(int ms);
-void platform_printf(const char* format, ...);
-Error platform_get_error();
-void platform_set_error(Error error);
-std::string platform_get_error_string(Error error);
+bool platformInit();
+void platformCleanup();
+bool platformIsRunning();
+bool platformIsNinjhax();
+u32 platformGetDeviceId();
+u64 platformGetTime();
+void platformDelay(int ms);
+void platformPrintf(const char* format, ...);
+Error platformGetError();
+void platformSetError(Error error);
+std::string platformGetErrorString(Error error);
 
 #endif

@@ -10,8 +10,9 @@ typedef enum {
     SD
 } MediaType;
 
-u64 fs_get_free_space(MediaType mediaType);
-bool fs_exists(const std::string path);
-bool fs_delete(const std::string path);
+u64 fsGetFreeSpace(MediaType mediaType);
+bool fsExists(const std::string path);
+bool fsIsDirectory(const std::string path);
+bool fsDelete(const std::string path);
 
 #endif

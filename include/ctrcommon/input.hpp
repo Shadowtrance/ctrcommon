@@ -46,13 +46,13 @@ typedef struct {
     int y;
 } Touch;
 
-const std::string input_get_button_name(Button button);
-void input_poll();
-bool input_is_any_pressed();
-Button input_get_any_pressed();
-bool input_is_released(Button button);
-bool input_is_pressed(Button button);
-bool input_is_held(Button button);
-Touch input_get_touch();
+const std::string inputGetButtonName(Button button);
+void inputPoll();
+bool inputIsAnyPressed();
+Button inputGetAnyPressed();
+bool inputIsReleased(Button button);
+bool inputIsPressed(Button button);
+bool inputIsHeld(Button button);
+Touch inputGetTouch();
 
 #endif

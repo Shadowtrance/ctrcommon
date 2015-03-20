@@ -10,7 +10,7 @@
 
 u64 htonll(u64 value) {
     static const int num = 42;
-    if(*((char *) &num) == num) {
+    if(*((char*) &num) == num) {
         return (((uint64_t) htonl((u32) value)) << 32) + htonl((u32) (value >> 32));
     } else {
         return value;
@@ -21,16 +21,16 @@ u64 ntohll(u64 value) {
     return htonll(value);
 }
 
-u32 socket_get_host_ip() {
-    if(!service_require("soc")) {
+u32 socketGetHostIP() {
+    if(!serviceRequire("soc")) {
         return 0;
     }
 
     return (u32) gethostid();
 }
 
-int socket_listen(u16 port) {
-    if(!service_require("soc")) {
+int socketListen(u16 port) {
+    if(!serviceRequire("soc")) {
         return -1;
     }
 
@@ -45,7 +45,7 @@ int socket_listen(u16 port) {
     address.sin_addr.s_addr = htonl(INADDR_ANY);
     address.sin_port = htons(port);
 
-    if(bind(fd, (struct sockaddr *) &address, sizeof(address)) != 0) {
+    if(bind(fd, (struct sockaddr*) &address, sizeof(address)) != 0) {
         return -1;
     }
 
@@ -65,12 +65,12 @@ int socket_listen(u16 port) {
     return fd;
 }
 
-FILE* socket_accept(int listeningSocket) {
-    if(!service_require("soc")) {
+FILE*socketAccept(int listeningSocket) {
+    if(!serviceRequire("soc")) {
         return NULL;
     }
 
-    int afd = accept(listeningSocket, (struct sockaddr *) NULL, NULL);
+    int afd = accept(listeningSocket, (struct sockaddr*) NULL, NULL);
     if(afd < 0) {
         return NULL;
     }
@@ -87,8 +87,8 @@ FILE* socket_accept(int listeningSocket) {
     return fdopen(afd, "rw");
 }
 
-FILE* socket_connect(const std::string ipAddress, u16 port) {
-    if(!service_require("soc")) {
+FILE*socketConnect(const std::string ipAddress, u16 port) {
+    if(!serviceRequire("soc")) {
         return NULL;
     }
 
@@ -106,7 +106,7 @@ FILE* socket_connect(const std::string ipAddress, u16 port) {
         return NULL;
     }
 
-    if(connect(fd, (struct sockaddr *) &address, sizeof(address)) < 0) {
+    if(connect(fd, (struct sockaddr*) &address, sizeof(address)) < 0) {
         return NULL;
     }
 

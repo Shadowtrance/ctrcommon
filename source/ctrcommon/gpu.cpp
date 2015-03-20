@@ -286,13 +286,15 @@ void gpuEndFrame() {
     GPUCMD_FlushAndRun(NULL);
     gspWaitForP3D();
 
+    // TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y.
+    // TODO: Make naming conventions consistent throughout library. Use this as a base since its nicer.
     u16 fbWidth;
     u16 fbHeight;
     u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);
-    GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (fbHeight << 16) | fbWidth, fb, (fbHeight << 16) | fbWidth, 0x1000);
+    GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (viewportHeight << 16) | viewportWidth, fb, (fbHeight << 16) | fbWidth, (PIXEL_RGB8 << 12));
     gspWaitForPPF();
 
-    GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[fbWidth * fbHeight], 0x201, gpuDepthBuffer, 0x00000000, &gpuDepthBuffer[fbWidth * fbHeight], 0x201);
+    GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[viewportWidth * viewportHeight], 0x201, gpuDepthBuffer, 0x00000000, &gpuDepthBuffer[viewportWidth * viewportHeight], 0x201);
     gspWaitForPSC0();
 
     gspWaitForVBlank();

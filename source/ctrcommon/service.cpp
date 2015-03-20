@@ -12,7 +12,7 @@
 
 static u32* socBuffer;
 
-Result fs_init() {
+Result fullFsInit() {
     Result fsResult = fsInit();
     if(fsResult != 0) {
         return fsResult;
@@ -26,12 +26,12 @@ Result fs_init() {
     return 0;
 }
 
-void fs_exit() {
+void fullFsExit() {
     sdmcExit();
     fsExit();
 }
 
-Result soc_init() {
+Result socInit() {
     socBuffer = (u32*) memalign(0x1000, 0x100000);
     if(socBuffer == NULL) {
         return -1;
@@ -47,7 +47,7 @@ Result soc_init() {
     return 0;
 }
 
-void soc_cleanup() {
+void socCleanup() {
     SOC_Shutdown();
     if(socBuffer != NULL) {
         free(socBuffer);
@@ -58,11 +58,11 @@ void soc_cleanup() {
 static std::map<std::string, std::function<void()>> services;
 static bool servicesInitialized = false;
 
-bool service_init() {
+bool serviceInit() {
     return (servicesInitialized = srvInit() == 0 && aptInit() == 0);
 }
 
-void service_cleanup() {
+void serviceCleanup() {
     if(!servicesInitialized) {
         return;
     }
@@ -78,7 +78,7 @@ void service_cleanup() {
     srvExit();
 }
 
-bool service_require(const std::string service) {
+bool serviceRequire(const std::string service) {
     if(!servicesInitialized) {
         return false;
     }
@@ -97,8 +97,8 @@ bool service_require(const std::string service) {
         result = hidInit(NULL);
         cleanup = &hidExit;
     } else if(service.compare("fs") == 0) {
-        result = fs_init();
-        cleanup = &fs_exit;
+        result = fullFsInit();
+        cleanup = &fullFsExit;
     } else if(service.compare("am") == 0) {
         result = amInit();
         cleanup = &amExit;
@@ -106,8 +106,8 @@ bool service_require(const std::string service) {
         result = nsInit();
         cleanup = &nsExit;
     } else if(service.compare("soc") == 0) {
-        result = soc_init();
-        cleanup = &soc_cleanup;
+        result = socInit();
+        cleanup = &socCleanup;
     } else if(service.compare("csnd") == 0) {
         result = csndInit();
         cleanup = &csndExit;
@@ -120,13 +120,13 @@ bool service_require(const std::string service) {
     if(result == 0) {
         services[service] = cleanup;
     } else {
-        platform_set_error(service_parse_error((u32) result));
+        platformSetError(serviceParseError((u32) result));
     }
 
     return result == 0;
 }
 
-Error service_parse_error(u32 error) {
+Error serviceParseError(u32 error) {
     Error err;
 
     u32 module = GET_BITS(error, 10, 17);

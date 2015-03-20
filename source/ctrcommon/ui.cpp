@@ -15,13 +15,13 @@
 #include <sstream>
 #include <stack>
 
-struct ui_alphabetize {
+struct uiAlphabetize {
     inline bool operator()(SelectableElement a, SelectableElement b) {
         return strcasecmp(a.name.c_str(), b.name.c_str()) < 0;
     }
 };
 
-bool ui_select(SelectableElement *selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect, bool useTopScreen, bool alphabetize) {
+bool uiSelect(SelectableElement* selected, std::vector<SelectableElement> elements, std::function<bool(std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty)> onLoop, std::function<bool(SelectableElement select)> onSelect, bool useTopScreen, bool alphabetize) {
     u32 cursor = 0;
     u32 scroll = 0;
 
@@ -33,12 +33,12 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
     bool elementsDirty = false;
     bool resetCursorIfDirty = true;
     if(alphabetize) {
-        std::sort(elements.begin(), elements.end(), ui_alphabetize());
+        std::sort(elements.begin(), elements.end(), uiAlphabetize());
     }
 
-    while(platform_is_running()) {
-        input_poll();
-        if(input_is_pressed(BUTTON_A)) {
+    while(platformIsRunning()) {
+        inputPoll();
+        if(inputIsPressed(BUTTON_A)) {
             SelectableElement select = elements.at(cursor);
             if(onSelect == NULL || onSelect(select)) {
                 *selected = select;
@@ -46,9 +46,9 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             }
         }
 
-        if(input_is_held(BUTTON_DOWN) || input_is_held(BUTTON_UP)) {
-            if(lastScrollTime == 0 || platform_get_time() - lastScrollTime >= 180) {
-                if(input_is_held(BUTTON_DOWN) && cursor < elements.size() - 1) {
+        if(inputIsHeld(BUTTON_DOWN) || inputIsHeld(BUTTON_UP)) {
+            if(lastScrollTime == 0 || platformGetTime() - lastScrollTime >= 180) {
+                if(inputIsHeld(BUTTON_DOWN) && cursor < elements.size() - 1) {
                     cursor++;
                     if(cursor >= scroll + 20) {
                         scroll++;
@@ -57,10 +57,10 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
                     selectionScroll = 0;
                     selectionScrollEndTime = 0;
 
-                    lastScrollTime = platform_get_time();
+                    lastScrollTime = platformGetTime();
                 }
 
-                if(input_is_held(BUTTON_UP) && cursor > 0) {
+                if(inputIsHeld(BUTTON_UP) && cursor > 0) {
                     cursor--;
                     if(cursor < scroll) {
                         scroll--;
@@ -69,17 +69,17 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
                     selectionScroll = 0;
                     selectionScrollEndTime = 0;
 
-                    lastScrollTime = platform_get_time();
+                    lastScrollTime = platformGetTime();
                 }
             }
         } else {
             lastScrollTime = 0;
         }
 
-        screen_begin_draw(BOTTOM_SCREEN);
-        screen_clear(0, 0, 0);
+        screenBeginDraw(BOTTOM_SCREEN);
+        screenClear(0, 0, 0);
 
-        u16 screenWidth = screen_get_width();
+        u16 screenWidth = screenGetWidth();
         for(std::vector<SelectableElement>::iterator it = elements.begin() + scroll; it != elements.begin() + scroll + 20 && it != elements.end(); it++) {
             SelectableElement element = *it;
             u32 index = (u32) (it - elements.begin());
@@ -87,13 +87,13 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             int offset = 0;
             if(index == cursor) {
                 color = 0;
-                screen_fill(0, (int) (index - scroll) * 12 - 2, screenWidth, (u16) (screen_get_str_height(element.name) + 4), 255, 255, 255);
-                u32 width = (u32) screen_get_str_width(element.name);
+                screenFill(0, (int) (index - scroll) * 12 - 2, screenWidth, (u16) (screenGetStrHeight(element.name) + 4), 255, 255, 255);
+                u32 width = (u32) screenGetStrWidth(element.name);
                 if(width > screenWidth) {
                     if(selectionScroll + screenWidth >= width) {
                         if(selectionScrollEndTime == 0) {
-                            selectionScrollEndTime = platform_get_time();
-                        } else if(platform_get_time() - selectionScrollEndTime >= 4000) {
+                            selectionScrollEndTime = platformGetTime();
+                        } else if(platformGetTime() - selectionScrollEndTime >= 4000) {
                             selectionScroll = 0;
                             selectionScrollEndTime = 0;
                         }
@@ -105,14 +105,14 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
                 offset = -selectionScroll;
             }
 
-            screen_draw_string(element.name, offset, (int) (index - scroll) * 12, color, color, color);
+            screenDrawString(element.name, offset, (int) (index - scroll) * 12, color, color, color);
         }
 
-        screen_end_draw();
+        screenEndDraw();
 
         if(useTopScreen) {
-            screen_begin_draw(TOP_SCREEN);
-            screen_clear(0, 0, 0);
+            screenBeginDraw(TOP_SCREEN);
+            screenClear(0, 0, 0);
 
             SelectableElement currSelected = elements.at(cursor);
             if(currSelected.details.size() != 0) {
@@ -121,7 +121,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
                     details << *it << "\n";
                 }
 
-                screen_draw_string(details.str(), 0, 0, 255, 255, 255);
+                screenDrawString(details.str(), 0, 0, 255, 255, 255);
             }
         }
 
@@ -135,7 +135,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             selectionScroll = 0;
             selectionScrollEndTime = 0;
             if(alphabetize) {
-                std::sort(elements.begin(), elements.end(), ui_alphabetize());
+                std::sort(elements.begin(), elements.end(), uiAlphabetize());
             }
 
             elementsDirty = false;
@@ -143,10 +143,10 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
         }
 
         if(useTopScreen) {
-            screen_end_draw();
+            screenEndDraw();
         }
 
-        screen_swap_buffers();
+        screenSwapBuffers();
         if(result) {
             break;
         }
@@ -155,17 +155,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
     return false;
 }
 
-bool ui_is_directory(const std::string path) {
-    DIR *dir = opendir(path.c_str());
-    if(!dir) {
-        return false;
-    }
-
-    closedir(dir);
-    return true;
-}
-
-void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::string directory, std::vector<std::string> extensions) {
+void uiGetDirContents(std::vector<SelectableElement> &elements, const std::string directory, std::vector<std::string> extensions) {
     elements.clear();
     elements.push_back({".", "."});
     elements.push_back({"..", ".."});
@@ -173,20 +163,20 @@ void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::st
     bool hasSlash = directory.size() != 0 && directory[directory.size() - 1] == '/';
     const std::string dirWithSlash = hasSlash ? directory : directory + "/";
 
-    DIR *dir = opendir(dirWithSlash.c_str());
+    DIR* dir = opendir(dirWithSlash.c_str());
     if(dir == NULL) {
         return;
     }
 
     while(true) {
-        struct dirent *ent = readdir(dir);
+        struct dirent* ent = readdir(dir);
         if(ent == NULL) {
             break;
         }
 
         const std::string dirName = std::string(ent->d_name);
         const std::string path = dirWithSlash + dirName;
-        if(ui_is_directory(path)) {
+        if(fsIsDirectory(path)) {
             elements.push_back({path, dirName});
         } else {
             std::string::size_type dotPos = path.rfind('.');
@@ -206,28 +196,28 @@ void ui_get_dir_contents(std::vector<SelectableElement> &elements, const std::st
     closedir(dir);
 }
 
-bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool(bool inRoot)> onLoop, bool useTopScreen) {
+bool uiSelectFile(std::string* selectedFile, const std::string rootDirectory, std::vector<std::string> extensions, std::function<bool(bool inRoot)> onLoop, bool useTopScreen) {
     std::stack<std::string> directoryStack;
     std::string currDirectory = rootDirectory;
 
     std::vector<SelectableElement> elements;
-    ui_get_dir_contents(elements, currDirectory, extensions);
+    uiGetDirContents(elements, currDirectory, extensions);
 
     bool changeDirectory = false;
     SelectableElement selected;
-    bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty) {
+    bool result = uiSelect(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty) {
         if(onLoop != NULL && onLoop(directoryStack.empty())) {
             return true;
         }
 
-        if(input_is_pressed(BUTTON_B) && !directoryStack.empty()) {
+        if(inputIsPressed(BUTTON_B) && !directoryStack.empty()) {
             currDirectory = directoryStack.top();
             directoryStack.pop();
             changeDirectory = true;
         }
 
         if(changeDirectory) {
-            ui_get_dir_contents(currElements, currDirectory, extensions);
+            uiGetDirContents(currElements, currDirectory, extensions);
             elementsDirty = true;
             changeDirectory = false;
         }
@@ -244,7 +234,7 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
             }
 
             return false;
-        } else if(ui_is_directory(select.id)) {
+        } else if(fsIsDirectory(select.id)) {
             directoryStack.push(currDirectory);
             currDirectory = select.id;
             changeDirectory = true;
@@ -261,8 +251,8 @@ bool ui_select_file(std::string *selectedFile, const std::string rootDirectory, 
     return result;
 }
 
-bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> onLoop, bool useTopScreen) {
-    std::vector<App> apps = app_list(mediaType);
+bool uiSelectApp(App* selectedApp, MediaType mediaType, std::function<bool()> onLoop, bool useTopScreen) {
+    std::vector<App> apps = appList(mediaType);
     std::vector<SelectableElement> elements;
     for(std::vector<App>::iterator it = apps.begin(); it != apps.end(); it++) {
         App app = *it;
@@ -277,8 +267,8 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
         details.push_back("Title ID: " + titleId.str());
         details.push_back("Unique ID: " + uniqueId.str());
         details.push_back("Product Code: " + std::string(app.productCode));
-        details.push_back("Platform: " + app_get_platform_name(app.platform));
-        details.push_back("Category: " + app_get_category_name(app.category));
+        details.push_back("Platform: " + appGetPlatformName(app.platform));
+        details.push_back("Category: " + appGetCategoryName(app.category));
 
         elements.push_back({titleId.str(), app.productCode, details});
     }
@@ -288,7 +278,7 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
     }
 
     SelectableElement selected;
-    bool result = ui_select(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty) {
+    bool result = uiSelect(&selected, elements, [&](std::vector<SelectableElement> &currElements, bool &elementsDirty, bool &resetCursorIfDirty) {
         return onLoop != NULL && onLoop();
     }, [&](SelectableElement select) {
         return select.name.compare("None") != 0;
@@ -306,15 +296,15 @@ bool ui_select_app(App *selectedApp, MediaType mediaType, std::function<bool()> 
     return result;
 }
 
-void ui_display_message(Screen screen, const std::string message) {
-    screen_begin_draw(screen);
-    screen_clear(0, 0, 0);
-    screen_draw_string(message, (screen_get_width() - screen_get_str_width(message)) / 2, (screen_get_height() - screen_get_str_height(message)) / 2, 255, 255, 255);
-    screen_end_draw();
-    screen_swap_buffers();
+void uiDisplayMessage(Screen screen, const std::string message) {
+    screenBeginDraw(screen);
+    screenClear(0, 0, 0);
+    screenDrawString(message, (screenGetWidth() - screenGetStrWidth(message)) / 2, (screenGetHeight() - screenGetStrHeight(message)) / 2, 255, 255, 255);
+    screenEndDraw();
+    screenSwapBuffers();
 }
 
-bool ui_prompt(Screen screen, const std::string message, bool question) {
+bool uiPrompt(Screen screen, const std::string message, bool question) {
     std::stringstream stream;
     stream << message << "\n";
     if(question) {
@@ -324,29 +314,29 @@ bool ui_prompt(Screen screen, const std::string message, bool question) {
     }
 
     std::string str = stream.str();
-    while(platform_is_running()) {
-        input_poll();
+    while(platformIsRunning()) {
+        inputPoll();
         if(question) {
-            if(input_is_pressed(BUTTON_A)) {
+            if(inputIsPressed(BUTTON_A)) {
                 return true;
             }
 
-            if(input_is_pressed(BUTTON_B)) {
+            if(inputIsPressed(BUTTON_B)) {
                 return false;
             }
         } else {
-            if(input_is_pressed(BUTTON_START)) {
+            if(inputIsPressed(BUTTON_START)) {
                 return true;
             }
         }
 
-        ui_display_message(screen, str);
+        uiDisplayMessage(screen, str);
     }
 
     return false;
 }
 
-void ui_display_progress(Screen screen, const std::string operation, const std::string details, bool quickSwap, int progress) {
+void uiDisplayProgress(Screen screen, const std::string operation, const std::string details, bool quickSwap, int progress) {
     std::stringstream stream;
     stream << operation << ": [";
     int progressBars = progress / 4;
@@ -367,46 +357,46 @@ void ui_display_progress(Screen screen, const std::string operation, const std::
 
     std::string str = stream.str();
 
-    screen_begin_draw(screen);
-    screen_clear(0, 0, 0);
-    screen_draw_string(str, (screen_get_width() - screen_get_str_width(str)) / 2, (screen_get_height() - screen_get_str_height(str)) / 2, 255, 255, 255);
-    screen_end_draw();
+    screenBeginDraw(screen);
+    screenClear(0, 0, 0);
+    screenDrawString(str, (screenGetWidth() - screenGetStrWidth(str)) / 2, (screenGetHeight() - screenGetStrHeight(str)) / 2, 255, 255, 255);
+    screenEndDraw();
     if(quickSwap) {
-        screen_swap_buffers_quick();
+        screenSwapBuffersQuick();
     } else {
-        screen_swap_buffers();
+        screenSwapBuffers();
     }
 }
 
-RemoteFile ui_accept_remote_file(Screen screen) {
-    ui_display_message(screen, "Initializing...");
+RemoteFile uiAcceptRemoteFile(Screen screen) {
+    uiDisplayMessage(screen, "Initializing...");
 
-    int listen = socket_listen(5000);
+    int listen = socketListen(5000);
     if(listen < 0) {
         std::stringstream errStream;
         errStream << "Failed to initialize." << "\n" << strerror(errno) << "\n";
-        ui_prompt(screen, errStream.str(), false);
+        uiPrompt(screen, errStream.str(), false);
         return {NULL, 0};
     }
 
     std::stringstream waitStream;
     waitStream << "Waiting for peer to connect..." << "\n";
-    waitStream << "IP: " << inet_ntoa({socket_get_host_ip()}) << "\n";
+    waitStream << "IP: " << inet_ntoa({socketGetHostIP()}) << "\n";
     waitStream << "Press B to cancel." << "\n";
-    ui_display_message(screen, waitStream.str());
+    uiDisplayMessage(screen, waitStream.str());
 
     FILE* socket;
-    while((socket = socket_accept(listen)) == NULL) {
+    while((socket = socketAccept(listen)) == NULL) {
         if(errno != EAGAIN && errno != EWOULDBLOCK && errno != EINPROGRESS) {
             close(listen);
 
             std::stringstream errStream;
             errStream << "Failed to accept peer." << "\n" << strerror(errno) << "\n";
-            ui_prompt(screen, errStream.str(), false);
+            uiPrompt(screen, errStream.str(), false);
             return {NULL, 0};
-        } else if(platform_is_running()) {
-            input_poll();
-            if(input_is_pressed(BUTTON_B)) {
+        } else if(platformIsRunning()) {
+            inputPoll();
+            if(inputIsPressed(BUTTON_B)) {
                 close(listen);
                 return {NULL, 0};
             }
@@ -417,11 +407,11 @@ RemoteFile ui_accept_remote_file(Screen screen) {
 
     close(listen);
 
-    ui_display_message(screen, "Reading info...");
+    uiDisplayMessage(screen, "Reading info...");
 
     u64 fileSize;
     u64 bytesRead = 0;
-    while(platform_is_running()) {
+    while(platformIsRunning()) {
         u64 currBytesRead = fread(&fileSize, 1, (size_t) (sizeof(fileSize) - bytesRead), socket);
         bytesRead += currBytesRead;
         if(currBytesRead == 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -430,7 +420,7 @@ RemoteFile ui_accept_remote_file(Screen screen) {
 
                 std::stringstream errStream;
                 errStream << "Failed to read info." << "\n" << strerror(errno) << "\n";
-                ui_prompt(screen, errStream.str(), false);
+                uiPrompt(screen, errStream.str(), false);
                 return {NULL, 0};
             }
 
@@ -438,7 +428,7 @@ RemoteFile ui_accept_remote_file(Screen screen) {
         }
     }
 
-    if(!platform_is_running()) {
+    if(!platformIsRunning()) {
         return {NULL, 0};
     }
 

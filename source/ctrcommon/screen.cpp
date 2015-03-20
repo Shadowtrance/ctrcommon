@@ -142,8 +142,8 @@ static u8* fb = NULL;
 static u16 fbWidth = 0;
 static u16 fbHeight = 0;
 
-bool screen_begin_draw(Screen screen) {
-    if(fb != NULL || !service_require("gfx")) {
+bool screenBeginDraw(Screen screen) {
+    if(fb != NULL || !serviceRequire("gfx")) {
         return false;
     }
 
@@ -151,8 +151,8 @@ bool screen_begin_draw(Screen screen) {
     return true;
 }
 
-bool screen_end_draw() {
-    if(fb == NULL || !service_require("gfx")) {
+bool screenEndDraw() {
+    if(fb == NULL || !serviceRequire("gfx")) {
         return false;
     }
 
@@ -162,8 +162,8 @@ bool screen_end_draw() {
     return true;
 }
 
-void screen_swap_buffers_quick() {
-    if(!service_require("gfx")) {
+void screenSwapBuffersQuick() {
+    if(!serviceRequire("gfx")) {
         return;
     }
 
@@ -171,8 +171,8 @@ void screen_swap_buffers_quick() {
     gfxSwapBuffers();
 }
 
-void screen_swap_buffers() {
-    if(!service_require("gfx")) {
+void screenSwapBuffers() {
+    if(!serviceRequire("gfx")) {
         return;
     }
 
@@ -181,25 +181,25 @@ void screen_swap_buffers() {
     gfxSwapBuffers();
 }
 
-u16 screen_get_width() {
+u16 screenGetWidth() {
     // Use fbHeight since the framebuffer is rotated 90 degrees to the left.
     return fbHeight;
 }
 
-u16 screen_get_height() {
+u16 screenGetHeight() {
     // Use fbWidth since the framebuffer is rotated 90 degrees to the left.
     return fbWidth;
 }
 
-u32 screen_get_index(int x, int y) {
-    u16 height = screen_get_height();
+u32 screenGetIndex(int x, int y) {
+    u16 height = screenGetHeight();
     // Reverse the y coordinate when finding the index.
     // This is done as the framebuffer is rotated 90 degrees to the left.
     return (u32) (((height - y - 1) + x * height) * 3);
 }
 
-bool screen_read_pixels(u8 *dest, int srcX, int srcY, int dstX, int dstY, u16 width, u16 height) {
-    if(fb == NULL || srcX + width < 0 || srcY + height < 0 || srcX >= screen_get_width() || srcY >= screen_get_height()) {
+bool screenReadPixels(u8* dest, int srcX, int srcY, int dstX, int dstY, u16 width, u16 height) {
+    if(fb == NULL || srcX + width < 0 || srcY + height < 0 || srcX >= screenGetWidth() || srcY >= screenGetHeight()) {
         return false;
     }
 
@@ -217,18 +217,18 @@ bool screen_read_pixels(u8 *dest, int srcX, int srcY, int dstX, int dstY, u16 wi
         srcY = 0;
     }
 
-    if(srcX + copyWidth > screen_get_width()) {
-        copyWidth = (u16) (screen_get_width() - srcX);
+    if(srcX + copyWidth > screenGetWidth()) {
+        copyWidth = (u16) (screenGetWidth() - srcX);
     }
 
-    if(srcY + copyHeight > screen_get_height()) {
-        copyHeight = (u16) (screen_get_height() - srcY);
+    if(srcY + copyHeight > screenGetHeight()) {
+        copyHeight = (u16) (screenGetHeight() - srcY);
     }
 
     for(int cx = 0; cx < copyWidth; cx++) {
         for(int cy = 0; cy < copyHeight; cy++) {
-            u8 *src = fb + screen_get_index(srcX + cx, srcY + cy);
-            u8 *dst = dest + ((dstY + cy) * width + (dstX + cx));
+            u8* src = fb + screenGetIndex(srcX + cx, srcY + cy);
+            u8* dst = dest + ((dstY + cy) * width + (dstX + cx));
             dst[0] = src[0];
             dst[1] = src[1];
             dst[2] = src[2];
@@ -238,7 +238,7 @@ bool screen_read_pixels(u8 *dest, int srcX, int srcY, int dstX, int dstY, u16 wi
     return true;
 }
 
-bool screen_take_screenshot() {
+bool screenTakeScreenshot() {
     u16 imgWidth = 400;
     u16 imgHeight = 480;
     u16 imgBytesPerPixel = 3;
@@ -248,28 +248,28 @@ bool screen_take_screenshot() {
     u8 temp[imgHeaderSize + imgDataSize];
     memset(temp, 0, imgHeaderSize + imgDataSize);
 
-    *(u16 *) &temp[0x0] = 0x4D42;
-    *(u32 *) &temp[0x2] = imgHeaderSize + imgDataSize;
-    *(u32 *) &temp[0xA] = imgHeaderSize;
-    *(u32 *) &temp[0xE] = 0x28;
-    *(u32 *) &temp[0x12] = imgWidth;
-    *(u32 *) &temp[0x16] = imgHeight;
-    *(u32 *) &temp[0x1A] = 0x00180001;
-    *(u32 *) &temp[0x22] = imgDataSize;
+    *(u16*) &temp[0x0] = 0x4D42;
+    *(u32*) &temp[0x2] = imgHeaderSize + imgDataSize;
+    *(u32*) &temp[0xA] = imgHeaderSize;
+    *(u32*) &temp[0xE] = 0x28;
+    *(u32*) &temp[0x12] = imgWidth;
+    *(u32*) &temp[0x16] = imgHeight;
+    *(u32*) &temp[0x1A] = 0x00180001;
+    *(u32*) &temp[0x22] = imgDataSize;
 
-    screen_begin_draw(TOP_SCREEN);
-    u16 topWidth = screen_get_width();
-    u16 topHeight = screen_get_height();
-    screen_read_pixels(temp + imgHeaderSize, 0, 0, 0, 0, topWidth, topHeight);
-    screen_end_draw();
+    screenBeginDraw(TOP_SCREEN);
+    u16 topWidth = screenGetWidth();
+    u16 topHeight = screenGetHeight();
+    screenReadPixels(temp + imgHeaderSize, 0, 0, 0, 0, topWidth, topHeight);
+    screenEndDraw();
 
-    screen_begin_draw(BOTTOM_SCREEN);
-    screen_read_pixels(temp + imgHeaderSize, 0, 0, (imgWidth - screen_get_width()) / 2, topHeight, screen_get_width(), screen_get_height());
-    screen_end_draw();
+    screenBeginDraw(BOTTOM_SCREEN);
+    screenReadPixels(temp + imgHeaderSize, 0, 0, (imgWidth - screenGetWidth()) / 2, topHeight, screenGetWidth(), screenGetHeight());
+    screenEndDraw();
 
     char file[256];
     snprintf(file, 256, "sdmc:/screenshot_%08d.bmp", (int) (svcGetSystemTick() / 446872));
-    FILE *fd = fopen(file, "wb");
+    FILE* fd = fopen(file, "wb");
     if(!fd) {
         return false;
     }
@@ -279,36 +279,25 @@ bool screen_take_screenshot() {
     return true;
 }
 
-bool screen_draw(int x, int y, u8 r, u8 g, u8 b) {
-    if(fb == NULL || x < 0 || y < 0 || x >= screen_get_width() || y >= screen_get_height()) {
+bool screenDraw(int x, int y, u8 r, u8 g, u8 b) {
+    if(fb == NULL || x < 0 || y < 0 || x >= screenGetWidth() || y >= screenGetHeight()) {
         return false;
     }
 
-    u32 idx = screen_get_index(x, y);
+    u32 idx = screenGetIndex(x, y);
     fb[idx + 0] = b;
     fb[idx + 1] = g;
     fb[idx + 2] = r;
     return true;
 }
 
-bool screen_draw_packed(int x, int y, u32 color) {
-    if(fb == NULL || x < 0 || y < 0 || x >= screen_get_width() || y >= screen_get_height()) {
-        return false;
-    }
-
-    u32 idx = screen_get_index(x, y);
-    *((u16*) (fb + idx)) = (u16) color;
-    *(fb + idx + 2) = (u8) (color >> 16);
-    return true;
-}
-
-bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
+bool screenFill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
     if(fb == NULL) {
         return false;
     }
 
-    u16 swidth = screen_get_width();
-    u16 sheight = screen_get_height();
+    u16 swidth = screenGetWidth();
+    u16 sheight = screenGetHeight();
     if(x + width < 0 || y + height < 0 || x >= swidth || y >= sheight) {
         return false;
     }
@@ -338,7 +327,7 @@ bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
         colorLine[ly * 3 + 2] = r;
     }
 
-    u8 *fbAddr = fb + screen_get_index(x, y) - ((height - 1) * 3);
+    u8* fbAddr = fb + screenGetIndex(x, y) - ((height - 1) * 3);
     for(int dx = 0; dx < width; dx++) {
         memcpy(fbAddr, colorLine, (size_t) (height * 3));
         fbAddr += sheight * 3;
@@ -347,13 +336,13 @@ bool screen_fill(int x, int y, u16 width, u16 height, u8 r, u8 g, u8 b) {
     return true;
 }
 
-bool screen_copy(int x, int y, u16 width, u16 height, u8* pixels) {
+bool screenCopy(int x, int y, u16 width, u16 height, u8* pixels) {
     if(fb == NULL) {
         return false;
     }
 
-    u16 swidth = screen_get_width();
-    u16 sheight = screen_get_height();
+    u16 swidth = screenGetWidth();
+    u16 sheight = screenGetHeight();
     if(x + width < 0 || y + height < 0 || x >= swidth || y >= sheight) {
         return false;
     }
@@ -377,7 +366,7 @@ bool screen_copy(int x, int y, u16 width, u16 height, u8* pixels) {
     }
 
     u8* colorLine = pixels;
-    u8* fbAddr = fb + screen_get_index(x, y) - ((height - 1) * 3);
+    u8* fbAddr = fb + screenGetIndex(x, y) - ((height - 1) * 3);
     for(int dx = 0; dx < width; dx++) {
         memcpy(fbAddr, colorLine, (size_t) (height * 3));
         colorLine += height * 3;
@@ -387,7 +376,7 @@ bool screen_copy(int x, int y, u16 width, u16 height, u8* pixels) {
     return true;
 }
 
-bool screen_clear(u8 r, u8 g, u8 b) {
+bool screenClear(u8 r, u8 g, u8 b) {
     if(fb == NULL) {
         return false;
     }
@@ -396,35 +385,35 @@ bool screen_clear(u8 r, u8 g, u8 b) {
         memset(fb, r, (size_t) (fbWidth * fbHeight * 3));
         return true;
     } else {
-        return screen_fill(0, 0, screen_get_width(), screen_get_height(), r, g, b);
+        return screenFill(0, 0, screenGetWidth(), screenGetHeight(), r, g, b);
     }
 }
 
-void screen_clear_buffers(Screen screen, u8 r, u8 g, u8 b) {
+void screenClearBuffers(Screen screen, u8 r, u8 g, u8 b) {
     for(int buffer = 0; buffer < 2; buffer++) {
-        screen_begin_draw(screen);
-        screen_clear(r, g, b);
-        screen_end_draw();
+        screenBeginDraw(screen);
+        screenClear(r, g, b);
+        screenEndDraw();
 
-        screen_swap_buffers();
+        screenSwapBuffers();
     }
 }
 
-void screen_clear_all(u8 r, u8 g, u8 b) {
+void screenClearAll(u8 r, u8 g, u8 b) {
     for(int buffer = 0; buffer < 2; buffer++) {
-        screen_begin_draw(TOP_SCREEN);
-        screen_clear(r, g, b);
-        screen_end_draw();
+        screenBeginDraw(TOP_SCREEN);
+        screenClear(r, g, b);
+        screenEndDraw();
 
-        screen_begin_draw(BOTTOM_SCREEN);
-        screen_clear(r, g, b);
-        screen_end_draw();
+        screenBeginDraw(BOTTOM_SCREEN);
+        screenClear(r, g, b);
+        screenEndDraw();
 
-        screen_swap_buffers();
+        screenSwapBuffers();
     }
 }
 
-u16 screen_get_str_width(const std::string str) {
+u16 screenGetStrWidth(const std::string str) {
     u32 len = str.length();
     if(len == 0) {
         return 0;
@@ -452,7 +441,7 @@ u16 screen_get_str_width(const std::string str) {
     return (u16) (longestLine * 8);
 }
 
-u16 screen_get_str_height(const std::string str) {
+u16 screenGetStrHeight(const std::string str) {
     u32 len = str.length();
     if(len == 0) {
         return 0;
@@ -468,19 +457,19 @@ u16 screen_get_str_height(const std::string str) {
     return (u16) (lines * 8);
 }
 
-bool screen_draw_char(char c, int x, int y, u8 r, u8 g, u8 b) {
+bool screenDrawChar(char c, int x, int y, u8 r, u8 g, u8 b) {
     if(fb == NULL) {
         return false;
     }
 
     bool drawn = false;
-    unsigned char *data = asciiData[(int) c];
+    unsigned char* data = asciiData[(int) c];
     for(int cy = 0; cy < 8; cy++) {
         unsigned char l = data[cy];
         for(int cx = 0; cx < 8; cx++) {
             if((0b10000000 >> cx) & l) {
                 drawn = true;
-                screen_draw(x + cx, y + cy, r, g, b);
+                screenDraw(x + cx, y + cy, r, g, b);
             }
         }
     }
@@ -488,7 +477,7 @@ bool screen_draw_char(char c, int x, int y, u8 r, u8 g, u8 b) {
     return drawn;
 }
 
-bool screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b) {
+bool screenDrawString(const std::string str, int x, int y, u8 r, u8 g, u8 b) {
     if(fb == NULL) {
         return false;
     }
@@ -504,7 +493,7 @@ bool screen_draw_string(const std::string str, int x, int y, u8 r, u8 g, u8 b) {
             continue;
         }
 
-        screen_draw_char(c, cx, cy, r, g, b);
+        screenDrawChar(c, cx, cy, r, g, b);
         cx += 8;
     }
 

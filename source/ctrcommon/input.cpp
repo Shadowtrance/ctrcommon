@@ -4,7 +4,7 @@
 
 #include <3ds.h>
 
-const std::string input_get_button_name(Button button) {
+const std::string inputGetButtonName(Button button) {
     if(button == BUTTON_A) {
         return "A";
     } else if(button == BUTTON_B) {
@@ -64,17 +64,17 @@ const std::string input_get_button_name(Button button) {
     return "Unknown Button";
 }
 
-void input_poll() {
-    if(!service_require("hid")) {
+void inputPoll() {
+    if(!serviceRequire("hid")) {
         return;
     }
 
     hidScanInput();
 }
 
-bool input_is_any_pressed() {
+bool inputIsAnyPressed() {
     for(u32 button = 0; button < 32; button++) {
-        if(input_is_pressed((Button) (1 << button))) {
+        if(inputIsPressed((Button) (1 << button))) {
             return true;
         }
     }
@@ -82,9 +82,9 @@ bool input_is_any_pressed() {
     return false;
 }
 
-Button input_get_any_pressed() {
+Button inputGetAnyPressed() {
     for(u32 button = 0; button < 32; button++) {
-        if(input_is_pressed((Button) (1 << button))) {
+        if(inputIsPressed((Button) (1 << button))) {
             return (Button) (1 << button);
         }
     }
@@ -92,32 +92,32 @@ Button input_get_any_pressed() {
     return (Button) -1;
 }
 
-bool input_is_released(Button button) {
-    if(!service_require("hid")) {
+bool inputIsReleased(Button button) {
+    if(!serviceRequire("hid")) {
         return false;
     }
 
     return (hidKeysUp() & button) != 0;
 }
 
-bool input_is_pressed(Button button) {
-    if(!service_require("hid")) {
+bool inputIsPressed(Button button) {
+    if(!serviceRequire("hid")) {
         return false;
     }
 
     return (hidKeysDown() & button) != 0;
 }
 
-bool input_is_held(Button button) {
-    if(!service_require("hid")) {
+bool inputIsHeld(Button button) {
+    if(!serviceRequire("hid")) {
         return false;
     }
 
     return (hidKeysHeld() & button) != 0;
 }
 
-Touch input_get_touch() {
-    if(!service_require("hid")) {
+Touch inputGetTouch() {
+    if(!serviceRequire("hid")) {
         return {0, 0};
     }
 

@@ -9,9 +9,9 @@
 
 u64 htonll(u64 value);
 u64 ntohll(u64 value);
-u32 socket_get_host_ip();
-int socket_listen(u16 port);
-FILE* socket_accept(int listeningSocket);
-FILE* socket_connect(const std::string ipAddress, u16 port);
+u32 socketGetHostIP();
+int socketListen(u16 port);
+FILE* socketAccept(int listeningSocket);
+FILE* socketConnect(const std::string ipAddress, u16 port);
 
 #endif

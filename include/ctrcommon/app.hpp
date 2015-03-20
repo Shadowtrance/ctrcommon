@@ -48,13 +48,13 @@ typedef enum {
     APP_LAUNCH_FAILED
 } AppResult;
 
-const std::string app_get_result_string(AppResult result);
-const std::string app_get_platform_name(AppPlatform platform);
-const std::string app_get_category_name(AppCategory category);
-std::vector<App> app_list(MediaType mediaType);
-AppResult app_install_file(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
-AppResult app_install(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress);
-AppResult app_delete(App app);
-AppResult app_launch(App app);
+const std::string appGetResultString(AppResult result);
+const std::string appGetPlatformName(AppPlatform platform);
+const std::string appGetCategoryName(AppCategory category);
+std::vector<App> appList(MediaType mediaType);
+AppResult appInstallFile(MediaType mediaType, const std::string path, std::function<bool(int progress)> onProgress);
+AppResult appInstall(MediaType mediaType, FILE* fd, u64 size, std::function<bool(int progress)> onProgress);
+AppResult appDelete(App app);
+AppResult appLaunch(App app);
 
 #endif

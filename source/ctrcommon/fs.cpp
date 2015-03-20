@@ -12,7 +12,7 @@
 
 static FS_archive sdmcArchive = {ARCH_SDMC, {PATH_EMPTY, 1, (u8*) ""}};
 
-const std::string fs_fix_path(const std::string path) {
+const std::string fsFixPath(const std::string path) {
     std::string fixed = path;
     std::string::size_type colon = fixed.find(':');
     if(colon != std::string::npos) {
@@ -35,8 +35,8 @@ const std::string fs_fix_path(const std::string path) {
     return stream.str();
 }
 
-u64 fs_get_free_space(MediaType mediaType) {
-    if(!service_require("fs")) {
+u64 fsGetFreeSpace(MediaType mediaType) {
+    if(!serviceRequire("fs")) {
         return 0;
     }
 
@@ -50,20 +50,24 @@ u64 fs_get_free_space(MediaType mediaType) {
     }
 
     if(res != 0) {
-        platform_set_error(service_parse_error((u32) res));
+        platformSetError(serviceParseError((u32) res));
         return 0;
     }
 
     return (u64) clusterSize * (u64) freeClusters;
 }
 
-bool fs_exists(const std::string path) {
+bool fsExists(const std::string path) {
     FILE* fd = fopen(path.c_str(), "r");
     if(fd) {
         fclose(fd);
         return true;
     }
 
+    return fsIsDirectory(path);
+}
+
+bool fsIsDirectory(const std::string path) {
     DIR* dir = opendir(path.c_str());
     if(dir) {
         closedir(dir);
@@ -73,10 +77,10 @@ bool fs_exists(const std::string path) {
     return false;
 }
 
-bool fs_delete(const std::string path) {
-    Result res = FSUSER_DeleteFile(NULL, sdmcArchive, FS_makePath(PATH_CHAR, fs_fix_path(path).c_str()));
+bool fsDelete(const std::string path) {
+    Result res = FSUSER_DeleteFile(NULL, sdmcArchive, FS_makePath(PATH_CHAR, fsFixPath(path).c_str()));
     if(res != 0) {
-        platform_set_error(service_parse_error((u32) res));
+        platformSetError(serviceParseError((u32) res));
     }
 
     return res == 0;

@@ -6,9 +6,9 @@
 
 #include <string>
 
-bool service_init();
-void service_cleanup();
-bool service_require(const std::string service);
-Error service_parse_error(u32 error);
+bool serviceInit();
+void serviceCleanup();
+bool serviceRequire(const std::string service);
+Error serviceParseError(u32 error);
 
 #endif
