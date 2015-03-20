@@ -1,10 +1,13 @@
-#include "ctrcommon/common.hpp"
+#include "ctrcommon/ui.hpp"
+
+#include "ctrcommon/input.hpp"
+#include "ctrcommon/platform.hpp"
+#include "ctrcommon/socket.hpp"
 
 #include <arpa/inet.h>
 #include <sys/dirent.h>
 #include <sys/errno.h>
 #include <sys/unistd.h>
-#include <stdio.h>
 #include <string.h>
 
 #include <algorithm>
@@ -84,7 +87,7 @@ bool ui_select(SelectableElement *selected, std::vector<SelectableElement> eleme
             int offset = 0;
             if(index == cursor) {
                 color = 0;
-                screen_fill(0, (int) (index - scroll) * 12 - 2, screenWidth, screen_get_str_height(element.name) + 4, 255, 255, 255);
+                screen_fill(0, (int) (index - scroll) * 12 - 2, screenWidth, (u16) (screen_get_str_height(element.name) + 4), 255, 255, 255);
                 u32 width = (u32) screen_get_str_width(element.name);
                 if(width > screenWidth) {
                     if(selectionScroll + screenWidth >= width) {

@@ -1,7 +1,8 @@
 #ifndef __CTRCOMMON_SERVICE_HPP__
 #define __CTRCOMMON_SERVICE_HPP__
 
-#include <ctrcommon/common.hpp>
+#include "ctrcommon/platform.hpp"
+#include "ctrcommon/types.hpp"
 
 #include <string>
 

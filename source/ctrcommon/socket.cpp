@@ -1,4 +1,5 @@
-#include "ctrcommon/common.hpp"
+#include "ctrcommon/socket.hpp"
+
 #include "service.hpp"
 
 #include <arpa/inet.h>
@@ -6,7 +7,6 @@
 #include <string.h>
 
 #include <3ds.h>
-#include <stdio.h>
 
 u64 htonll(u64 value) {
     static const int num = 42;

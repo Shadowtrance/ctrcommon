@@ -1,10 +1,10 @@
 #include "service.hpp"
 
 #include <malloc.h>
-
-#include <map>
-
 #include <stdio.h>
+
+#include <functional>
+#include <map>
 
 #include <3ds.h>
 

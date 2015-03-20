@@ -1,4 +1,5 @@
-#include "ctrcommon/common.hpp"
+#include "ctrcommon/app.hpp"
+
 #include "service.hpp"
 
 #include <sys/errno.h>

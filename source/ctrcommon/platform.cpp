@@ -1,7 +1,9 @@
-#include "ctrcommon/common.hpp"
+#include "ctrcommon/platform.hpp"
+
 #include "service.hpp"
 
 #include <malloc.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -347,6 +349,7 @@ std::string platform_get_error_string(Error error) {
         case MODULE_APPLICATION:
             result << "Application";
             break;
+        case MODULE_INVALID:
         default:
             result << "Invalid module";
             break;
@@ -428,6 +431,7 @@ std::string platform_get_error_string(Error error) {
         case SUMMARY_INTERNAL:
             result << "Internal";
             break;
+        case SUMMARY_INVALID:
         default:
             result << "Invalid summary";
             break;
@@ -581,6 +585,7 @@ std::string platform_get_error_string(Error error) {
         case DESCRIPTION_TIMEOUT:
             result << "Timeout";
             break;
+        case DESCRIPTION_INVALID:
         default:
             result << "Invalid description";
             break;

@@ -1,4 +1,5 @@
-#include "ctrcommon/common.hpp"
+#include "ctrcommon/sound.hpp"
+
 #include "service.hpp"
 
 #include <3ds.h>

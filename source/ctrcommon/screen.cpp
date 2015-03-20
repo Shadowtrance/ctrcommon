@@ -1,12 +1,11 @@
-#include <sys/unistd.h>
+#include "ctrcommon/screen.hpp"
+
+#include "service.hpp"
+
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 
 #include <3ds.h>
-
-#include "ctrcommon/common.hpp"
-#include "service.hpp"
 
 static unsigned char asciiData[128][8] = {
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
