@@ -1,6 +1,7 @@
 #ifndef __CTRCOMMON_GPU_HPP__
 #define __CTRCOMMON_GPU_HPP__
 
+#include "ctrcommon/screen.hpp"
 #include "ctrcommon/types.hpp"
 
 // TODO: error reporting system
@@ -137,7 +138,7 @@ void gpuEndFrame();
 
 void gpuClearColor(u8 red, u8 green, u8 blue, u8 alpha);
 
-void gpuViewport(u32 x, u32 y, u32 width, u32 height);
+void gpuViewport(Screen screen, u32 x, u32 y, u32 width, u32 height);
 
 void gpuDepthMap(float near, float far);
 

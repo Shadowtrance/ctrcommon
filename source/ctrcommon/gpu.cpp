@@ -63,6 +63,7 @@ u32 dirtyTextures;
 
 u32 clearColor;
 
+Screen viewportScreen;
 u32 viewportX;
 u32 viewportY;
 u32 viewportWidth;
@@ -121,6 +122,7 @@ void gpuInit() {
 
     clearColor = 0;
 
+    viewportScreen = TOP_SCREEN;
     viewportX = 0;
     viewportY = 0;
     viewportWidth = 240;
@@ -284,10 +286,13 @@ void gpuEndFrame() {
     GPUCMD_FlushAndRun(NULL);
     gspWaitForP3D();
 
-    GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (400 << 16) | 240, (u32*) gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), (400 << 16) | 240, 0x1000);
+    u16 fbWidth;
+    u16 fbHeight;
+    u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);
+    GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (fbHeight << 16) | fbWidth, fb, (fbHeight << 16) | fbWidth, 0x1000);
     gspWaitForPPF();
 
-    GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[400 * 240], 0x201, gpuDepthBuffer, 0x00000000, &gpuDepthBuffer[400 * 240], 0x201);
+    GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[fbWidth * fbHeight], 0x201, gpuDepthBuffer, 0x00000000, &gpuDepthBuffer[fbWidth * fbHeight], 0x201);
     gspWaitForPSC0();
 
     gspWaitForVBlank();
@@ -298,7 +303,8 @@ void gpuClearColor(u8 red, u8 green, u8 blue, u8 alpha) {
     clearColor = (u32) (((red & 0xFF) << 24) | ((green & 0xFF) << 16) | ((blue & 0xFF) << 8) | (alpha & 0xFF));
 }
 
-void gpuViewport(u32 x, u32 y, u32 width, u32 height) {
+void gpuViewport(Screen screen, u32 x, u32 y, u32 width, u32 height) {
+    viewportScreen = screen;
     viewportX = x;
     viewportY = y;
     viewportWidth = width;
