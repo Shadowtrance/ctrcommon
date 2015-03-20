@@ -18,6 +18,7 @@
 #define STATE_ACTIVE_SHADER (1 << 7)
 #define STATE_TEX_ENV (1 << 8)
 #define STATE_TEXTURES (1 << 9)
+#define STATE_SCISSOR_TEST (1 << 10)
 
 typedef struct {
     DVLB_s* dvlb;
@@ -55,13 +56,15 @@ typedef struct {
     u32 constantColor;
 } TexEnv;
 
-bool inFrame;
+static u32* gpuFrameBuffer = (u32*) 0x1F119400;
+static u32* gpuDepthBuffer = (u32*) 0x1F370800;
 
 u32 dirtyState;
 u32 dirtyTexEnvs;
 u32 dirtyTextures;
 
 u32 clearColor;
+u32 clearDepth;
 
 Screen viewportScreen;
 u32 viewportX;
@@ -110,17 +113,19 @@ TexEnv texEnv[TEX_ENV_COUNT];
 TextureData* activeTextures[3];
 u32 enabledTextures;
 
-static u32* gpuFrameBuffer = (u32*) 0x1F119400;
-static u32* gpuDepthBuffer = (u32*) 0x1F370800;
+ScissorMode scissorMode;
+u32 scissorX;
+u32 scissorY;
+u32 scissorWidth;
+u32 scissorHeight;
 
 void gpuInit() {
-    inFrame = false;
-
     dirtyState = 0xFFFFFFFF;
     dirtyTexEnvs = 0xFFFFFFFF;
     dirtyTextures = 0xFFFFFFFF;
 
     clearColor = 0;
+    clearDepth = 0;
 
     viewportScreen = TOP_SCREEN;
     viewportX = 0;
@@ -187,22 +192,29 @@ void gpuInit() {
 
     enabledTextures = 0;
 
+    scissorMode = SCISSOR_DISABLE;
+    scissorX = 0;
+    scissorY = 0;
+    scissorWidth = 240;
+    scissorHeight = 400;
+
     u32 gpuCmdSize = 0x40000;
     u32* gpuCmd = (u32*) linearAlloc(gpuCmdSize * 4);
     GPU_Init(NULL);
     GPU_Reset(NULL, gpuCmd, gpuCmdSize);
+    GPUCMD_SetBufferOffset(0);
 }
 
 void gpuUpdateState() {
-    if(!inFrame) {
-        return;
-    }
-
     u32 dirtyUpdate = dirtyState;
     dirtyState = 0;
 
     if(dirtyUpdate & STATE_VIEWPORT) {
         GPU_SetViewport((u32*) osConvertVirtToPhys((u32) gpuDepthBuffer), (u32*) osConvertVirtToPhys((u32) gpuFrameBuffer), viewportX, viewportY, viewportWidth, viewportHeight);
+    }
+
+    if(dirtyUpdate & STATE_SCISSOR_TEST) {
+        GPU_SetScissorTest((GPU_SCISSORMODE) scissorMode, scissorX, scissorY, scissorWidth, scissorHeight);
     }
 
     if(dirtyUpdate & STATE_DEPTH_MAP) {
@@ -265,44 +277,35 @@ void gpuUpdateState() {
     }
 }
 
-void gpuBeginFrame() {
-    if(inFrame) {
-        return;
-    }
-
-    inFrame = true;
-    GPUCMD_SetBufferOffset(0);
-}
-
-void gpuEndFrame() {
-    if(!inFrame) {
-        return;
-    }
-
-    inFrame = false;
-
+void gpuFlush() {
     GPUCMD_Finalize();
     GPU_FinishDrawing();
     GPUCMD_FlushAndRun(NULL);
     gspWaitForP3D();
 
     // TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y.
-    // TODO: Make naming conventions consistent throughout library. Use this as a base since its nicer.
     u16 fbWidth;
     u16 fbHeight;
     u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);
     GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (viewportHeight << 16) | viewportWidth, fb, (fbHeight << 16) | fbWidth, (PIXEL_RGB8 << 12));
     gspWaitForPPF();
 
-    GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[viewportWidth * viewportHeight], 0x201, gpuDepthBuffer, 0x00000000, &gpuDepthBuffer[viewportWidth * viewportHeight], 0x201);
-    gspWaitForPSC0();
-
     gspWaitForVBlank();
     gfxSwapBuffersGpu();
+    GPUCMD_SetBufferOffset(0);
+}
+
+void gpuClear() {
+    GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[viewportWidth * viewportHeight], 0x201, gpuDepthBuffer, clearDepth, &gpuDepthBuffer[viewportWidth * viewportHeight], 0x201);
+    gspWaitForPSC0();
 }
 
 void gpuClearColor(u8 red, u8 green, u8 blue, u8 alpha) {
     clearColor = (u32) (((red & 0xFF) << 24) | ((green & 0xFF) << 16) | ((blue & 0xFF) << 8) | (alpha & 0xFF));
+}
+
+void gpuClearDepth(u32 depth) {
+    clearDepth = depth;
 }
 
 void gpuViewport(Screen screen, u32 x, u32 y, u32 width, u32 height) {
@@ -551,16 +554,7 @@ void gpuVboAttributes(u32 vbo, u64 attributes, u8 attributeCount) {
     }
 }
 
-// Using GPUCMD_AddSingleParam doesn't compile due to its use of temporary arrays as arguments.
-void gpuAddSingle(u32 header, u32 param) {
-    GPUCMD_Add(header, &param, 1);
-}
-
 void gpuDrawVbo(u32 vbo) {
-    if(!inFrame) {
-        return;
-    }
-
     VboData* vboData = (VboData*) vbo;
     if(vboData == NULL) {
         return;
@@ -570,20 +564,7 @@ void gpuDrawVbo(u32 vbo) {
 
     static u32 attributeBufferOffset = 0;
     GPU_SetAttributeBuffers(vboData->attributeCount, (u32*) osConvertVirtToPhys((u32) vboData->data), vboData->attributes, vboData->attributeMask, vboData->attributePermutations, 1, &attributeBufferOffset, &vboData->attributePermutations, &vboData->attributeCount);
-
-    gpuAddSingle(0x000F0200, (osConvertVirtToPhys((u32) vboData->data)) >> 3);
-    gpuAddSingle(0x0002025E, (GPU_Primitive_t) vboData->primitive);
-    gpuAddSingle(0x0002025F, 0x00000001);
-    gpuAddSingle(0x000F0227, 0x80000000);
-    gpuAddSingle(0x000F0228, vboData->numVertices);
-    gpuAddSingle(0x00010253, 0x00000001);
-    gpuAddSingle(0x00010245, 0x00000000);
-    gpuAddSingle(0x000F022E, 0x00000001);
-    gpuAddSingle(0x0008025E, 0x00000000);
-    gpuAddSingle(0x0008025E, 0x00000000);
-    gpuAddSingle(0x00010245, 0x00000001);
-    gpuAddSingle(0x000F0231, 0x00000001);
-    gpuAddSingle(0x000F0111, 0x00000001);
+    GPU_DrawArray((GPU_Primitive_t) vboData->primitive, vboData->numVertices);
 }
 
 void gpuTexEnv(u32 env, u16 rgbSources, u16 alphaSources, u16 rgbOperands, u16 alphaOperands, CombineFunc rgbCombine, CombineFunc alphaCombine, u32 constantColor) {
@@ -688,3 +669,12 @@ void gpuBindTexture(TexUnit unit, u32 texture) {
     dirtyTextures |= (1 << unitIndex);
 }
 
+void gpuScissorTest(ScissorMode mode, u32 x, u32 y, u32 width, u32 height) {
+    scissorMode = mode;
+    scissorX = x;
+    scissorY = y;
+    scissorWidth = width;
+    scissorHeight = height;
+
+    dirtyState |= STATE_SCISSOR_TEST;
+}

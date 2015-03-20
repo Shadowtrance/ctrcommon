@@ -131,12 +131,20 @@ typedef enum {
     PIXEL_ETC1A4 = 0xC
 } PixelFormat;
 
+typedef enum {
+    SCISSOR_DISABLE = 0,
+    SCISSOR_INVERT = 1,
+    SCISSOR_NORMAL = 3
+} ScissorMode;
+
 void gpuInit();
 
-void gpuBeginFrame();
-void gpuEndFrame();
+void gpuFlush();
+
+void gpuClear();
 
 void gpuClearColor(u8 red, u8 green, u8 blue, u8 alpha);
+void gpuClearDepth(u32 depth);
 
 void gpuViewport(Screen screen, u32 x, u32 y, u32 width, u32 height);
 
@@ -176,5 +184,7 @@ void gpuCreateTexture(u32* texture);
 void gpuFreeTexture(u32 texture);
 void gpuTextureData(u32 texture, const void* data, u32 inWidth, u32 inHeight, PixelFormat inFormat, u32 outWidth, u32 outHeight, PixelFormat outFormat, u32 params);
 void gpuBindTexture(TexUnit unit, u32 texture);
+
+void gpuScissorTest(ScissorMode mode, u32 x, u32 y, u32 width, u32 height);
 
 #endif
