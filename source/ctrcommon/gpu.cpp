@@ -280,11 +280,17 @@ void gpuUpdateState() {
     }
 }
 
+void gpuSafeWait(Handle event) {
+    if(!svcWaitSynchronization(event, 40 * 1000 * 1000)) {
+        svcClearEvent(event);
+    }
+}
+
 void gpuFlush() {
     GPU_FinishDrawing();
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
-    gspWaitForP3D();
+    gpuSafeWait(GSPEVENT_P3D);
 
     GPUCMD_SetBufferOffset(0);
 }
@@ -295,10 +301,10 @@ void gpuSwapBuffers(bool vblank) {
     u16 fbHeight;
     u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);
     GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (viewportHeight << 16) | viewportWidth, fb, (fbHeight << 16) | fbWidth, (PIXEL_RGB8 << 12));
-    gspWaitForPPF();
+    gpuSafeWait(GSPEVENT_PPF);
 
     if(vblank) {
-        gspWaitForVBlank();
+        gpuSafeWait(GSPEVENT_VBlank0);
     }
 
     gfxSwapBuffersGpu();
@@ -306,7 +312,7 @@ void gpuSwapBuffers(bool vblank) {
 
 void gpuClear() {
     GX_SetMemoryFill(NULL, gpuFrameBuffer, clearColor, &gpuFrameBuffer[viewportWidth * viewportHeight], 0x201, gpuDepthBuffer, clearDepth, &gpuDepthBuffer[viewportWidth * viewportHeight], 0x201);
-    gspWaitForPSC0();
+    gpuSafeWait(GSPEVENT_PSC0);
 }
 
 void gpuClearColor(u8 red, u8 green, u8 blue, u8 alpha) {
@@ -720,7 +726,7 @@ void gpuTextureData(u32 texture, const void* data, u32 inWidth, u32 inHeight, Pi
     }
 
     GX_SetDisplayTransfer(NULL, (u32*) data, (inHeight << 16) | inWidth, (u32*) textureData->data, (outHeight << 16) | outWidth, (u32) ((1 << 1) | (inFormat << 8) | (outFormat << 12)));
-    gspWaitForPPF();
+    gpuSafeWait(GSPEVENT_PPF);
 
     textureData->width = outWidth;
     textureData->height = outHeight;
