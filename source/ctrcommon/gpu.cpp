@@ -19,7 +19,6 @@
 #define STATE_TEX_ENV (1 << 8)
 #define STATE_TEXTURES (1 << 9)
 #define STATE_SCISSOR_TEST (1 << 10)
-#define STATE_LOGIC_OP (1 << 11)
 
 typedef struct {
     DVLB_s* dvlb;
@@ -116,8 +115,6 @@ TestFunc depthFunc;
 
 u32 componentMask;
 
-LogicOp logicOp;
-
 ShaderData* activeShader;
 
 TexEnv texEnv[TEX_ENV_COUNT];
@@ -178,8 +175,6 @@ void gpuInit() {
     depthFunc = TEST_GREATER;
 
     componentMask = GPU_WRITE_ALL;
-
-    logicOp = LOGICOP_COPY;
 
     activeShader = NULL;
 
@@ -251,15 +246,11 @@ void gpuUpdateState() {
         GPU_SetDepthTestAndWriteMask(depthEnable, (GPU_TESTFUNC) depthFunc, (GPU_WRITEMASK) componentMask);
     }
 
-    if(dirtyUpdate & STATE_LOGIC_OP) {
-        GPU_SetColorLogicOp((GPU_LOGICOP) logicOp);
-    }
-
-    if(dirtyUpdate & STATE_ACTIVE_SHADER && activeShader != NULL && activeShader->dvlb != NULL) {
+    if((dirtyUpdate & STATE_ACTIVE_SHADER) && activeShader != NULL && activeShader->dvlb != NULL) {
         shaderProgramUse(&activeShader->program);
     }
 
-    if(dirtyUpdate & STATE_TEX_ENV && dirtyTexEnvs != 0) {
+    if((dirtyUpdate & STATE_TEX_ENV) && dirtyTexEnvs != 0) {
         u32 texEnvs = dirtyTexEnvs;
         dirtyTexEnvs = 0;
         for(u8 env = 0; env < TEX_ENV_COUNT; env++) {
@@ -269,7 +260,7 @@ void gpuUpdateState() {
         }
     }
 
-    if(dirtyUpdate & STATE_TEXTURES && dirtyTextures != 0) {
+    if((dirtyUpdate & STATE_TEXTURES) && dirtyTextures != 0) {
         u32 textures = dirtyTextures;
         dirtyTextures = 0;
         for(u8 unit = 0; unit < TEX_UNIT_COUNT; unit++) {
@@ -290,11 +281,15 @@ void gpuUpdateState() {
 }
 
 void gpuFlush() {
-    GPUCMD_Finalize();
     GPU_FinishDrawing();
+    GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
     gspWaitForP3D();
 
+    GPUCMD_SetBufferOffset(0);
+}
+
+void gpuSwapBuffers(bool vblank) {
     // TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y.
     u16 fbWidth;
     u16 fbHeight;
@@ -302,9 +297,11 @@ void gpuFlush() {
     GX_SetDisplayTransfer(NULL, gpuFrameBuffer, (viewportHeight << 16) | viewportWidth, fb, (fbHeight << 16) | fbWidth, (PIXEL_RGB8 << 12));
     gspWaitForPPF();
 
-    gspWaitForVBlank();
+    if(vblank) {
+        gspWaitForVBlank();
+    }
+
     gfxSwapBuffersGpu();
-    GPUCMD_SetBufferOffset(0);
 }
 
 void gpuClear() {
@@ -353,7 +350,7 @@ void gpuCullMode(CullMode mode) {
     dirtyState |= STATE_CULL;
 }
 
-void gpuStencilFunc(bool enable, TestFunc func, u8 ref, u8 mask, u8 replace) {
+void gpuStencilTest(bool enable, TestFunc func, u8 ref, u8 mask, u8 replace) {
     stencilEnable = enable;
     stencilFunc = func;
     stencilRef = ref;
@@ -391,7 +388,7 @@ void gpuBlendFunc(BlendEquation colorEquation, BlendEquation alphaEquation, Blen
     dirtyState |= STATE_BLEND;
 }
 
-void gpuAlphaFunc(bool enable, TestFunc func, u8 ref) {
+void gpuAlphaTest(bool enable, TestFunc func, u8 ref) {
     alphaEnable = enable;
     alphaFunc = func;
     alphaRef = ref;
@@ -399,7 +396,7 @@ void gpuAlphaFunc(bool enable, TestFunc func, u8 ref) {
     dirtyState |= STATE_ALPHA_TEST;
 }
 
-void gpuDepthFunc(bool enable, TestFunc func) {
+void gpuDepthTest(bool enable, TestFunc func) {
     depthEnable = enable;
     depthFunc = func;
 
@@ -419,12 +416,6 @@ void gpuDepthMask(bool depth) {
     componentMask = depth ? componentMask | GPU_WRITE_DEPTH : componentMask & ~GPU_WRITE_DEPTH;
 
     dirtyState |= STATE_DEPTH_TEST_AND_MASK;
-}
-
-void gpuLogicOp(LogicOp op) {
-    logicOp = op;
-
-    dirtyState |= STATE_LOGIC_OP;
 }
 
 void gpuCreateShader(u32* shader) {

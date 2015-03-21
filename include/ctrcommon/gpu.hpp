@@ -66,25 +66,6 @@ typedef enum {
 } BlendFactor;
 
 typedef enum {
-    LOGICOP_CLEAR = 0,
-    LOGICOP_AND = 1,
-    LOGICOP_AND_REVERSE = 2,
-    LOGICOP_COPY = 3,
-    LOGICOP_SET = 4,
-    LOGICOP_COPY_INVERTED = 5,
-    LOGICOP_NOOP = 6,
-    LOGICOP_INVERT = 7,
-    LOGICOP_NAND = 8,
-    LOGICOP_OR = 9,
-    LOGICOP_NOR = 10,
-    LOGICOP_XOR = 11,
-    LOGICOP_EQUIV = 12,
-    LOGICOP_AND_INVERTED = 13,
-    LOGICOP_OR_REVERSE = 14,
-    LOGICOP_OR_INVERTED = 15
-} LogicOp;
-
-typedef enum {
     VERTEX_SHADER = 0x0,
     GEOMETRY_SHADER = 0x1
 } ShaderType;
@@ -164,6 +145,7 @@ typedef enum {
 void gpuInit();
 
 void gpuFlush();
+void gpuSwapBuffers(bool vblank);
 
 void gpuClear();
 
@@ -176,20 +158,18 @@ void gpuDepthMap(float near, float far);
 
 void gpuCullMode(CullMode mode);
 
-void gpuStencilFunc(bool enable, TestFunc func, u8 ref, u8 mask, u8 replace);
+void gpuStencilTest(bool enable, TestFunc func, u8 ref, u8 mask, u8 replace);
 void gpuStencilOp(StencilOp fail, StencilOp zfail, StencilOp zpass);
 
 void gpuBlendColor(u8 red, u8 green, u8 blue, u8 alpha);
 void gpuBlendFunc(BlendEquation colorEquation, BlendEquation alphaEquation, BlendFactor colorSrc, BlendFactor colorDst, BlendFactor alphaSrc, BlendFactor alphaDst);
 
-void gpuAlphaFunc(bool enable, TestFunc func, u8 ref);
+void gpuAlphaTest(bool enable, TestFunc func, u8 ref);
 
-void gpuDepthFunc(bool enable, TestFunc func);
+void gpuDepthTest(bool enable, TestFunc func);
 
 void gpuColorMask(bool red, bool green, bool blue, bool alpha);
 void gpuDepthMask(bool depth);
-
-void gpuLogicOp(LogicOp op);
 
 void gpuCreateShader(u32* shader);
 void gpuFreeShader(u32 shader);
