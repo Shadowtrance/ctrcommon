@@ -152,7 +152,7 @@ void gpuClearColor(u8 red, u8 green, u8 blue, u8 alpha);
 void gpuClearDepth(u32 depth);
 
 void gpuViewport(Screen screen, u32 x, u32 y, u32 width, u32 height);
-
+void gpuScissorTest(ScissorMode mode, u32 x, u32 y, u32 width, u32 height);
 void gpuDepthMap(float near, float far);
 
 void gpuCullMode(CullMode mode);
@@ -190,7 +190,5 @@ void gpuCreateTexture(u32* texture);
 void gpuFreeTexture(u32 texture);
 void gpuTextureData(u32 texture, const void* data, u32 inWidth, u32 inHeight, PixelFormat inFormat, u32 outWidth, u32 outHeight, PixelFormat outFormat, u32 params);
 void gpuBindTexture(TexUnit unit, u32 texture);
-
-void gpuScissorTest(ScissorMode mode, u32 x, u32 y, u32 width, u32 height);
 
 #endif

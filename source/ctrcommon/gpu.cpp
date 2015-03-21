@@ -113,7 +113,7 @@ ShaderData* activeShader;
 
 TexEnv texEnv[TEX_ENV_COUNT];
 
-TextureData* activeTextures[3];
+TextureData* activeTextures[TEX_UNIT_COUNT];
 u32 enabledTextures;
 
 ScissorMode scissorMode;
@@ -321,6 +321,16 @@ void gpuViewport(Screen screen, u32 x, u32 y, u32 width, u32 height) {
     dirtyState |= STATE_VIEWPORT;
 }
 
+void gpuScissorTest(ScissorMode mode, u32 x, u32 y, u32 width, u32 height) {
+    scissorMode = mode;
+    scissorX = x;
+    scissorY = y;
+    scissorWidth = width;
+    scissorHeight = height;
+
+    dirtyState |= STATE_SCISSOR_TEST;
+}
+
 void gpuDepthMap(float near, float far) {
     depthNear = near;
     depthFar = far;
@@ -425,7 +435,7 @@ void gpuFreeShader(u32 shader) {
     free(shdr);
 }
 
-void gpuLoadShader(u32 shader, const void* data, u32 size, u8 geometryStride = 0) {
+void gpuLoadShader(u32 shader, const void* data, u32 size, u8 geometryStride) {
     if(data == NULL) {
         return;
     }
@@ -699,7 +709,6 @@ void gpuTextureData(u32 texture, const void* data, u32 inWidth, u32 inHeight, Pi
             if(activeTextures[unit] == textureData) {
                 dirtyState |= STATE_TEXTURES;
                 dirtyTextures |= (1 << unit);
-                break;
             }
         }
     }
@@ -720,14 +729,4 @@ void gpuBindTexture(TexUnit unit, u32 texture) {
 
     dirtyState |= STATE_TEXTURES;
     dirtyTextures |= (1 << unitIndex);
-}
-
-void gpuScissorTest(ScissorMode mode, u32 x, u32 y, u32 width, u32 height) {
-    scissorMode = mode;
-    scissorX = x;
-    scissorY = y;
-    scissorWidth = width;
-    scissorHeight = height;
-
-    dirtyState |= STATE_SCISSOR_TEST;
 }
