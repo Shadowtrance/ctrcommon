@@ -19,6 +19,7 @@
 #define STATE_TEX_ENV (1 << 8)
 #define STATE_TEXTURES (1 << 9)
 #define STATE_SCISSOR_TEST (1 << 10)
+#define STATE_LOGIC_OP (1 << 11)
 
 typedef struct {
     DVLB_s* dvlb;
@@ -75,6 +76,12 @@ u32 viewportY;
 u32 viewportWidth;
 u32 viewportHeight;
 
+ScissorMode scissorMode;
+u32 scissorX;
+u32 scissorY;
+u32 scissorWidth;
+u32 scissorHeight;
+
 float depthNear;
 float depthFar;
 
@@ -109,18 +116,14 @@ TestFunc depthFunc;
 
 u32 componentMask;
 
+LogicOp logicOp;
+
 ShaderData* activeShader;
 
 TexEnv texEnv[TEX_ENV_COUNT];
 
 TextureData* activeTextures[TEX_UNIT_COUNT];
 u32 enabledTextures;
-
-ScissorMode scissorMode;
-u32 scissorX;
-u32 scissorY;
-u32 scissorWidth;
-u32 scissorHeight;
 
 void gpuInit() {
     dirtyState = 0xFFFFFFFF;
@@ -135,6 +138,12 @@ void gpuInit() {
     viewportY = 0;
     viewportWidth = 240;
     viewportHeight = 400;
+
+    scissorMode = SCISSOR_DISABLE;
+    scissorX = 0;
+    scissorY = 0;
+    scissorWidth = 240;
+    scissorHeight = 400;
 
     depthNear = 0;
     depthFar = 1;
@@ -170,6 +179,8 @@ void gpuInit() {
 
     componentMask = GPU_WRITE_ALL;
 
+    logicOp = LOGICOP_COPY;
+
     activeShader = NULL;
 
     texEnv[0].rgbSources = TEXENV_SOURCES(SOURCE_TEXTURE0, SOURCE_PRIMARY_COLOR, SOURCE_PRIMARY_COLOR);
@@ -194,12 +205,6 @@ void gpuInit() {
     }
 
     enabledTextures = 0;
-
-    scissorMode = SCISSOR_DISABLE;
-    scissorX = 0;
-    scissorY = 0;
-    scissorWidth = 240;
-    scissorHeight = 400;
 
     u32 gpuCmdSize = 0x40000;
     u32* gpuCmd = (u32*) linearAlloc(gpuCmdSize * 4);
@@ -244,6 +249,10 @@ void gpuUpdateState() {
 
     if(dirtyUpdate & STATE_DEPTH_TEST_AND_MASK) {
         GPU_SetDepthTestAndWriteMask(depthEnable, (GPU_TESTFUNC) depthFunc, (GPU_WRITEMASK) componentMask);
+    }
+
+    if(dirtyUpdate & STATE_LOGIC_OP) {
+        GPU_SetColorLogicOp((GPU_LOGICOP) logicOp);
     }
 
     if(dirtyUpdate & STATE_ACTIVE_SHADER && activeShader != NULL && activeShader->dvlb != NULL) {
@@ -410,6 +419,12 @@ void gpuDepthMask(bool depth) {
     componentMask = depth ? componentMask | GPU_WRITE_DEPTH : componentMask & ~GPU_WRITE_DEPTH;
 
     dirtyState |= STATE_DEPTH_TEST_AND_MASK;
+}
+
+void gpuLogicOp(LogicOp op) {
+    logicOp = op;
+
+    dirtyState |= STATE_LOGIC_OP;
 }
 
 void gpuCreateShader(u32* shader) {
