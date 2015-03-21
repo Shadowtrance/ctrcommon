@@ -66,6 +66,11 @@ typedef enum {
 } BlendFactor;
 
 typedef enum {
+    VERTEX_SHADER = 0x0,
+    GEOMETRY_SHADER = 0x1
+} ShaderType;
+
+typedef enum {
     PRIM_TRIANGLES = 0x0000,
     PRIM_TRIANGLE_STRIP = 0x0100,
     PRIM_TRIANGLE_FAN = 0x0200,
@@ -132,9 +137,9 @@ typedef enum {
 } PixelFormat;
 
 typedef enum {
-    SCISSOR_DISABLE = 0,
-    SCISSOR_INVERT = 1,
-    SCISSOR_NORMAL = 3
+    SCISSOR_DISABLE = 0x0,
+    SCISSOR_INVERT = 0x1,
+    SCISSOR_NORMAL = 0x3
 } ScissorMode;
 
 void gpuInit();
@@ -167,15 +172,16 @@ void gpuDepthMask(bool depth);
 
 void gpuCreateShader(u32* shader);
 void gpuFreeShader(u32 shader);
-void gpuLoadShader(u32 shader, const void* data, u32 size);
+void gpuLoadShader(u32 shader, const void* data, u32 size, u8 geometryStride = 0);
 void gpuUseShader(u32 shader);
-void gpuGetUniformBool(u32 shader, int id, bool* value);
-void gpuSetUniformBool(u32 shader, int id, bool value);
-void gpuSetUniform(u32 shader, const char* name, const void* data, u32 elements);
+void gpuGetUniformBool(u32 shader, ShaderType type, int id, bool* value);
+void gpuSetUniformBool(u32 shader, ShaderType type, int id, bool value);
+void gpuSetUniform(u32 shader, ShaderType type, const char* name, const void* data, u32 elements);
 
 void gpuCreateVbo(u32* vbo);
 void gpuFreeVbo(u32 vbo);
 void gpuVboData(u32 vbo, const void* data, u32 size, u32 numVertices, Primitive primitive);
+void gpuVboIndices(u32 vbo, const void* data, u32 size);
 void gpuVboAttributes(u32 vbo, u64 attributes, u8 attributeCount);
 void gpuDrawVbo(u32 vbo);
 

@@ -31,6 +31,9 @@ typedef struct {
     u32 numVertices;
     Primitive primitive;
 
+    void* indices;
+    u32 indicesSize;
+
     u64 attributes;
     u8 attributeCount;
     u16 attributeMask;
@@ -422,7 +425,7 @@ void gpuFreeShader(u32 shader) {
     free(shdr);
 }
 
-void gpuLoadShader(u32 shader, const void* data, u32 size) {
+void gpuLoadShader(u32 shader, const void* data, u32 size, u8 geometryStride = 0) {
     if(data == NULL) {
         return;
     }
@@ -439,12 +442,17 @@ void gpuLoadShader(u32 shader, const void* data, u32 size) {
 
     shdr->dvlb = DVLB_ParseFile((u32*) data, size);
     shaderProgramInit(&shdr->program);
-    shaderProgramSetVsh(&shdr->program, &shdr->dvlb->DVLE[0]);
+    if(shdr->dvlb->numDVLE > 0) {
+        shaderProgramSetVsh(&shdr->program, &shdr->dvlb->DVLE[0]);
+        if(shdr->dvlb->numDVLE > 1) {
+            shaderProgramSetGsh(&shdr->program, &shdr->dvlb->DVLE[1], geometryStride);
+        }
+    }
 }
 
 void gpuUseShader(u32 shader) {
     ShaderData* shdr = (ShaderData*) shader;
-    if(shdr == NULL) {
+    if(shdr == NULL || shdr->dvlb == NULL) {
         return;
     }
 
@@ -453,42 +461,50 @@ void gpuUseShader(u32 shader) {
     dirtyState |= STATE_ACTIVE_SHADER;
 }
 
-void gpuGetUniformBool(u32 shader, int id, bool* value) {
+void gpuGetUniformBool(u32 shader, ShaderType type, int id, bool* value) {
     if(value == NULL) {
         return;
     }
 
     ShaderData* shdr = (ShaderData*) shader;
-    if(shdr == NULL) {
+    if(shdr == NULL || shdr->dvlb == NULL) {
         return;
     }
 
-    shaderInstanceGetBool(shdr->program.vertexShader, id, value);
+    shaderInstance_s* instance = type == VERTEX_SHADER ? shdr->program.vertexShader : shdr->program.geometryShader;
+    if(instance != NULL) {
+        shaderInstanceGetBool(instance, id, value);
+    }
 }
 
-void gpuSetUniformBool(u32 shader, int id, bool value) {
+void gpuSetUniformBool(u32 shader, ShaderType type, int id, bool value) {
     ShaderData* shdr = (ShaderData*) shader;
-    if(shdr == NULL) {
+    if(shdr == NULL || shdr->dvlb == NULL) {
         return;
     }
 
-    shaderInstanceSetBool(shdr->program.vertexShader, id, value);
+    shaderInstance_s* instance = type == VERTEX_SHADER ? shdr->program.vertexShader : shdr->program.geometryShader;
+    if(instance != NULL) {
+        shaderInstanceSetBool(instance, id, value);
+    }
 }
 
-void gpuSetUniform(u32 shader, const char* name, const void* data, u32 elements) {
+void gpuSetUniform(u32 shader, ShaderType type, const char* name, const void* data, u32 elements) {
     if(name == NULL || data == NULL) {
         return;
     }
 
     ShaderData* shdr = (ShaderData*) shader;
-    if(shdr == NULL) {
+    if(shdr == NULL || shdr->dvlb == NULL) {
         return;
     }
 
-    Result res = shaderInstanceGetUniformLocation(shdr->program.vertexShader, name);
-    if(res >= 0) {
-        // TODO: state variables to make sure this happens within frame?
-        GPU_SetFloatUniform(GPU_VERTEX_SHADER, (u32) res, (u32*) data, elements);
+    shaderInstance_s* instance = type == VERTEX_SHADER ? shdr->program.vertexShader : shdr->program.geometryShader;
+    if(instance != NULL) {
+        Result res = shaderInstanceGetUniformLocation(instance, name);
+        if(res >= 0) {
+            GPU_SetFloatUniform((GPU_SHADER_TYPE) type, (u32) res, (u32 *) data, elements);
+        }
     }
 }
 
@@ -509,6 +525,10 @@ void gpuFreeVbo(u32 vbo) {
 
     if(vboData->data != NULL) {
         linearFree(vboData->data);
+    }
+
+    if(vboData->indices != NULL) {
+        linearFree(vboData->indices);
     }
 
     free(vboData);
@@ -539,6 +559,35 @@ void gpuVboData(u32 vbo, const void* data, u32 size, u32 numVertices, Primitive 
     vboData->primitive = primitive;
 }
 
+void gpuVboIndices(u32 vbo, const void* data, u32 size) {
+    VboData* vboData = (VboData*) vbo;
+    if(vboData == NULL) {
+        return;
+    }
+
+    if(data == NULL) {
+        if(vboData->indices != NULL) {
+            linearFree(vboData->indices);
+            vboData->indices = NULL;
+            vboData->indicesSize = 0;
+        }
+
+        return;
+    }
+
+    if(vboData->indices == NULL || vboData->indicesSize != size) {
+        if(vboData->indices != NULL) {
+            linearFree(vboData->indices);
+        }
+
+        vboData->indices = linearMemAlign(size, 0x80);
+    }
+
+    memcpy(vboData->indices, data, size);
+
+    vboData->indicesSize = size;
+}
+
 void gpuVboAttributes(u32 vbo, u64 attributes, u8 attributeCount) {
     VboData* vboData = (VboData*) vbo;
     if(vboData == NULL) {
@@ -556,7 +605,7 @@ void gpuVboAttributes(u32 vbo, u64 attributes, u8 attributeCount) {
 
 void gpuDrawVbo(u32 vbo) {
     VboData* vboData = (VboData*) vbo;
-    if(vboData == NULL) {
+    if(vboData == NULL || vboData->data == NULL) {
         return;
     }
 
@@ -564,7 +613,11 @@ void gpuDrawVbo(u32 vbo) {
 
     static u32 attributeBufferOffset = 0;
     GPU_SetAttributeBuffers(vboData->attributeCount, (u32*) osConvertVirtToPhys((u32) vboData->data), vboData->attributes, vboData->attributeMask, vboData->attributePermutations, 1, &attributeBufferOffset, &vboData->attributePermutations, &vboData->attributeCount);
-    GPU_DrawArray((GPU_Primitive_t) vboData->primitive, vboData->numVertices);
+    if(vboData->indices != NULL) {
+        GPU_DrawElements((GPU_Primitive_t) vboData->primitive, (u32*) vboData->indices, vboData->numVertices);
+    } else {
+        GPU_DrawArray((GPU_Primitive_t) vboData->primitive, vboData->numVertices);
+    }
 }
 
 void gpuTexEnv(u32 env, u16 rgbSources, u16 alphaSources, u16 rgbOperands, u16 alphaOperands, CombineFunc rgbCombine, CombineFunc alphaCombine, u32 constantColor) {
@@ -642,7 +695,7 @@ void gpuTextureData(u32 texture, const void* data, u32 inWidth, u32 inHeight, Pi
         }
 
         textureData->data = linearMemAlign(size, 0x80);
-        for(u8 unit = 0; unit < 3; unit++) {
+        for(u8 unit = 0; unit < TEX_UNIT_COUNT; unit++) {
             if(activeTextures[unit] == textureData) {
                 dirtyState |= STATE_TEXTURES;
                 dirtyTextures |= (1 << unit);
