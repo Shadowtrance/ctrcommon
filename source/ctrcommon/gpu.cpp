@@ -61,6 +61,7 @@ typedef struct {
 
 static u32* gpuFrameBuffer = (u32*) 0x1F119400;
 static u32* gpuDepthBuffer = (u32*) 0x1F370800;
+extern Handle gspEvents[GSPEVENT_MAX];
 
 u32 dirtyState;
 u32 dirtyTexEnvs;
@@ -280,9 +281,10 @@ void gpuUpdateState() {
     }
 }
 
-void gpuSafeWait(Handle event) {
-    if(!svcWaitSynchronization(event, 40 * 1000 * 1000)) {
-        svcClearEvent(event);
+void gpuSafeWait(GSP_Event event) {
+    Handle eventHandle = gspEvents[event];
+    if(!svcWaitSynchronization(eventHandle, 40 * 1000 * 1000)) {
+        svcClearEvent(eventHandle);
     }
 }
 
@@ -296,7 +298,6 @@ void gpuFlush() {
 }
 
 void gpuSwapBuffers(bool vblank) {
-    // TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y.
     u16 fbWidth;
     u16 fbHeight;
     u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);
