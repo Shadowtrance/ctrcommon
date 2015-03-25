@@ -298,6 +298,9 @@ void gpuFlush() {
 }
 
 void gpuSwapBuffers(bool vblank) {
+    // TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y.
+    // TODO: Fix weird texture output with certain width/heights(?) (NTSC_WIDTH textures, GBC screen, etc)
+    // TODO: Find a way around requiring linear-allocated inputs to texture data.
     u16 fbWidth;
     u16 fbHeight;
     u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);
@@ -726,7 +729,12 @@ void gpuTextureData(u32 texture, const void* data, u32 inWidth, u32 inHeight, Pi
         }
     }
 
-    GX_SetDisplayTransfer(NULL, (u32*) data, (inHeight << 16) | inWidth, (u32*) textureData->data, (outHeight << 16) | outWidth, (u32) ((1 << 1) | (inFormat << 8) | (outFormat << 12)));
+    u32 flags = (u32) ((1 << 1) | (inFormat << 8) | (outFormat << 12));
+    if(outWidth < inWidth || outHeight < inHeight) {
+        flags |= (1 << 2);
+    }
+
+    GX_SetDisplayTransfer(NULL, (u32*) data, (inHeight << 16) | inWidth, (u32*) textureData->data, (outHeight << 16) | outWidth, flags);
     gpuSafeWait(GSPEVENT_PPF);
 
     textureData->width = outWidth;
