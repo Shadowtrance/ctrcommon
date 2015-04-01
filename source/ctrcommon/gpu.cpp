@@ -5,6 +5,10 @@
 
 #include <3ds.h>
 
+// TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y. Related to the issue below.
+// TODO: Fix weird texture output with differing widths. (GX_SetDisplayTransfer not converting between widths?)
+// TODO: Find a way around requiring linear-allocated inputs to texture data, or at least make a nice way to allocate.
+
 #define TEX_ENV_COUNT 6
 #define TEX_UNIT_COUNT 3
 
@@ -298,9 +302,6 @@ void gpuFlush() {
 }
 
 void gpuSwapBuffers(bool vblank) {
-    // TODO: Fix viewport at smaller sizes than screen showing weird dupe image, fix using non-zero viewport X/Y.
-    // TODO: Fix weird texture output with certain width/heights(?) (NTSC_WIDTH textures, GBC screen, etc)
-    // TODO: Find a way around requiring linear-allocated inputs to texture data.
     u16 fbWidth;
     u16 fbHeight;
     u32* fb = (u32*) gfxGetFramebuffer(viewportScreen == TOP_SCREEN ? GFX_TOP : GFX_BOTTOM, GFX_LEFT, &fbWidth, &fbHeight);

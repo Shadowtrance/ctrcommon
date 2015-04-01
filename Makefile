@@ -95,10 +95,10 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 all: $(BUILD)
 
 dist-bin: all
-	@tar -cjf ctrcommon.tar.bz2 include lib
+	@tar -cjf ctrcommon.tar.bz2 include lib tools
 
 dist-src:
-	@tar -cjf ctrcommon-src.tar.bz2 include source Makefile
+	@tar -cjf ctrcommon-src.tar.bz2 include source tools Makefile
 
 dist: dist-src dist-bin
 
