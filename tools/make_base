@@ -71,6 +71,11 @@ else
 	endif
 endif
 
+ifneq ("$(wildcard $(TOPDIR)/resources/banner.cgfx)","")
+	BANNER_IMAGE := -ci $(TOPDIR)/resources/banner.cgfx
+else
+	BANNER_IMAGE := -i $(TOPDIR)/resources/banner.png
+endif
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -153,7 +158,7 @@ $(OUTPUT_D):
 	@[ -d $@ ] || mkdir -p $@
 
 banner.bnr: $(TOPDIR)/resources/banner.png $(TOPDIR)/resources/audio.wav
-	@$(BANNERTOOL) makebanner -i $(TOPDIR)/resources/banner.png -a $(TOPDIR)/resources/audio.wav -o banner.bnr > /dev/null
+	@$(BANNERTOOL) makebanner $(BANNER_IMAGE) -a $(TOPDIR)/resources/audio.wav -o banner.bnr > /dev/null
 
 icon.icn: $(TOPDIR)/resources/icon.png
 	@$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_TITLE)" -p "$(APP_AUTHOR)" -i $(TOPDIR)/resources/icon.png -o icon.icn > /dev/null
